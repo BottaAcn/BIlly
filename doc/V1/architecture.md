@@ -38,10 +38,15 @@ I due lati condividono l'entità `Asset`/`Chunk` (il contenuto che Billy usa per
                  │ Vector(3072)        │  │ via env var credenziali│
                  └─────────────────────┘  └───────────────────────┘
                             │
+                 (file allegati: BLOB su HANA, stesso DB sopra —
+                  Object Store NON usato, vedi §6)
+                            │
                  ┌──────────▼─────────┐
-                 │   Object Store      │
-                 │ (file allegati,     │
-                 │  malware scan)      │
+                 │ Malware Scanning    │
+                 │ Service (BTP,       │
+                 │ entitlement a sé,   │
+                 │ non serve Object    │
+                 │ Store — vedi §6)    │
                  └─────────────────────┘
 ```
 
@@ -92,7 +97,7 @@ entity Asset : cuid, managed {
   uploadedBy               : Association to Player not null;
   certifiedBy              : Association to Player;
   externalLink             : String(500);              // per skill/tool ospitati altrove
-  attachments              : Composition of many Attachments; // @cap-js/attachments (D3)
+  attachments              : Composition of many Attachments; // @cap-js/attachments, storage kind "db" (BLOB su HANA, non Object Store — §6)
   chunks                   : Composition of many Chunk on chunks.asset = $self;
   revisions                : Composition of many AssetRevision on revisions.asset = $self;
   pointEvents              : Association to many PointEvent on pointEvents.asset = $self;
@@ -327,8 +332,27 @@ Domanda utente
 
 ## 6. File storage e allegati
 
-- **Object Store** (BTP, piano `standard`) — **entitlement a pagamento**, verificarne la disponibilità prima di iniziare questa parte (preflight §7.2: se non c'è nel piano attuale, fallback temporaneo = testo/LargeString in HANA, migrazione dopo)
-- **`@cap-js/attachments`** in composition su `Asset` — gestisce upload, download, e include gratuitamente il **malware scanning** (D3, non negoziabile: chiunque in azienda può caricare file)
+**Decisione (08/09/2026, dopo verifica tecnica approfondita — non un'assunzione): storage su HANA Cloud, non Object Store.** Riccardo (admin subaccount) ha indicato di andare su HANA quando gli è stata posta la domanda "Object Store o BLOB su HANA?". Prima di accettarlo abbiamo verificato se questo comporta la rinuncia al malware scanning (requisito non negoziabile, D3) — **non è così**, vedi sotto.
+
+### Cosa abbiamo verificato (leggendo il codice sorgente di `@cap-js/attachments`, non solo la doc)
+
+- **`@cap-js/attachments`** supporta nativamente lo storage **"db" (database)** come modalità di storage — non è solo un fallback per test locali come suggerisce una prima lettura della doc, è una modalità di storage riconosciuta a tutti gli effetti. I file vengono salvati come `LargeBinary` (BLOB) su HANA.
+- **Il malware scanning è un servizio separato e indipendente dallo storage.** Non è "incluso in Object Store" come pensavamo inizialmente: è **SAP Malware Scanning Service**, un entitlement BTP a sé stante (piani `clamav`/`standard`), bindato con un comando `cds bind` proprio, distinto dal binding dello storage.
+- **Conferma definitiva dal codice sorgente del plugin** (`lib/plugin.js`, commento originale): *"Calls next() to persist the request, then synchronously scans the uploaded content via the malware scanner service (**no outbox — db-kind scanner runs in-process**)"*. Il plugin ha un percorso di codice dedicato proprio al caso "storage = db" che esegue comunque lo scan — non è un caso trascurato o non supportato, è previsto esplicitamente.
+
+**Conclusione pratica: possiamo avere sia lo storage gratuito su HANA (già disponibile) sia il vero malware scanning, senza bisogno di Object Store.** L'unico entitlement da richiedere è **SAP Malware Scanning Service** (separato da Object Store), verosimilmente a costo minore/nullo rispetto a quest'ultimo (piano `clamav` = probabile integrazione dell'antivirus open source ClamAV).
+
+### Verifica tecnica su HANA come storage per file (efficienza/qualità)
+
+- **Limite dimensione**: 2GB per LOB su HANA Cloud — ampiamente sufficiente per documenti e pacchetti/tool in zip di uso pratico
+- **Nessuna perdita di qualità**: è storage binario lossless, identico byte-per-byte al file originale (non è una compressione con perdita)
+- **Efficienza**: HANA usa "Hybrid LOB" — i file di dimensioni sopra una soglia vengono spostati automaticamente su disco (non restano in RAM), quindi non gonfiano la memoria del database anche con molti file caricati
+- **Compromesso onesto da tenere presente**: ogni download passa comunque attraverso il motore del database invece che uno storage dedicato — per un uso interno con ~200 persone non è un problema atteso, ma va monitorato se il volume di file/download crescesse molto in futuro. Non è un limite bloccante oggi, è un'osservazione per il futuro.
+
+### Cosa resta da fare in Fase 5
+
+- **`@cap-js/attachments`** in composition su `Asset`, configurato con storage `kind: "db"` (nessun binding Object Store necessario)
+- Bind del **SAP Malware Scanning Service** (nuovo entitlement da richiedere — vedi messaggio pronto per l'admin più sotto in questo documento o nella conversazione)
 - Estrazione testo da file (PDF/docx) per l'ingestion: libreria da scegliere in fase di implementazione (es. `pdf-parse` per PDF, `mammoth` per docx) — non ancora scelta, va valutata quando si arriva a questa fase
 
 ---
@@ -373,7 +397,7 @@ Estende l'MTA minimo di v0.0.1 (2 moduli: `billy-srv` + `billy-db-deployer`) agg
 | Modulo/risorsa | Quando serve | Tipo |
 |---|---|---|
 | `billy-srv`, `billy-db-deployer`, `billy-hdi-container` | Già esistenti da v0.0.1 | — |
-| Object Store | Quando si implementa upload file reale (§6) | resource |
+| `billy-malware-scanner` (SAP Malware Scanning Service) | Quando si implementa upload file reale (§6) — Object Store **non** usato, storage su HANA | resource |
 | `billy-ui` (build React) | Quando il frontend React sostituisce l'HTML di test | module (`html5`) |
 | `billy-app-deployer` | Insieme a `billy-ui` | module (`com.sap.html5.application-content`) |
 | `html5-repo-host` / `html5-repo-runtime` | Insieme a `billy-ui` | resource |
@@ -386,7 +410,7 @@ Estende l'MTA minimo di v0.0.1 (2 moduli: `billy-srv` + `billy-db-deployer`) agg
 ## 11. Aspetti non funzionali
 
 - **Logging**: SAP Cloud Logging (non Application Logging, in deprecazione — preflight §7.5)
-- **Costo**: monitorare consumo token AI Core (dominato dall'input, da cui D8) e costo Object Store (a pagamento, non nel free tier)
+- **Costo**: monitorare consumo token AI Core (dominato dall'input, da cui D8) e costo del piano SAP Malware Scanning Service richiesto (§6) — Object Store non è più nello scope, quindi il suo costo non si applica
 - **CI/CD**: non nello scope di questo documento, da affrontare quando il ritmo di rilascio lo giustifica
 
 ---
