@@ -43,7 +43,10 @@ Verificata end-to-end su Cloud Foundry reale, con conferma empirica del chunking
 
 ---
 
-## Fase 2 — Catalogo utilizzabile: CRUD Asset + stati di certificazione
+## Fase 2 — Catalogo utilizzabile: CRUD Asset + stati di certificazione — ✅ COMPLETATA (08/09/2026)
+
+Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approvazione confermato (un asset non approvato non è citato da Billy, uno approvato sì con peso pieno, uno deprecato viene escluso). 4 bug reali trovati e corretti durante il test (non prevedibili per sola ispezione statica): subquery correlata HANA, player pre-esistente senza nuovi flag di ruolo, colonna `published` non backfillata come atteso, function CDS che richiedono GET non POST. PointEvent reali rimandati alla Fase 3 (richiedono Season). Dettaglio: [fase2-checklist.md](fase2-checklist.md).
+
 
 **Logica di business definita ✅ (07/09/2026)** — vedi architecture.md §2/§3.1/§7 per il dettaglio completo: flusso di revisione/approvazione (ogni pubblicazione, prima creazione inclusa, passa da una coda di revisione dei Certifier/Admin — anche a livello `community`), ruoli provvisori `isCertifier`/`isAdmin` su `Player`, transizioni di stato libere, eliminazione riservata ad Admin, ricerca full-text di default + "Ricerca approfondita" semantica opt-in, pesi di retrieval per certificazione (1.0/0.75/0.35), punti con `pointsPct` variabile sulle revisioni successive alla prima. Non ancora implementata.
 

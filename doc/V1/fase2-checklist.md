@@ -136,19 +136,19 @@ Sia `BillyService` che il nuovo `CatalogService` hanno bisogno di: caricare le c
 
 ## 10. Versionamento
 
-- [ ] **10.1** Commit su `dev`
-- [ ] **10.2** Push `origin/dev`
-- [ ] **10.3** Merge `dev` → `master`
-- [ ] **10.4** Push `master`
-- [ ] **10.5** Ritorno su `dev`
+- [x] **10.1** Commit su `dev`
+- [x] **10.2** Push `origin/dev`
+- [x] **10.3** Merge `dev` → `master`
+- [x] **10.4** Push `master`
+- [x] **10.5** Ritorno su `dev`
 
 ---
 
 ## 11. Chiusura fase
 
-- [ ] **11.1** Aggiornare questa checklist con gli esiti reali
-- [ ] **11.2** Aggiornare `roadmap.md` marcando la Fase 2 come completata
-- [ ] **11.3** Riepilogo all'utente, incluso l'elenco esplicito di cosa è stato **rimandato** (PointEvent reali → Fase 3, job scheduler reale → infra successiva)
+- [x] **11.1** Aggiornare questa checklist con gli esiti reali
+- [x] **11.2** Aggiornare `roadmap.md` marcando la Fase 2 come completata
+- [x] **11.3** Riepilogo all'utente, incluso l'elenco esplicito di cosa è stato **rimandato** (PointEvent reali → Fase 3, job scheduler reale → infra successiva)
 
 ---
 
