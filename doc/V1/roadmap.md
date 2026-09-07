@@ -25,7 +25,10 @@ Verificata end-to-end su Cloud Foundry reale. Dettaglio: [fase0-checklist.md](fa
 
 ---
 
-## Fase 1 — RAG "vero": citazioni cliccabili + retrieval pesato + chunking
+## Fase 1 — RAG "vero": citazioni cliccabili + retrieval pesato + chunking — ✅ COMPLETATA (07/09/2026)
+
+Verificata end-to-end su Cloud Foundry reale, con conferma empirica del chunking multiplo (non solo teorica): una domanda su un testo di 987 caratteri ha recuperato due chunk distinti dello stesso asset con similarity diverse. Il modello segnala spontaneamente le fonti non certificate. Dettaglio: [fase1-checklist.md](fase1-checklist.md).
+
 
 **Cosa:**
 1. Citazioni con link cliccabile verso l'Asset (chunk → asset → URL)
