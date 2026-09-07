@@ -45,7 +45,9 @@ Verificata end-to-end su Cloud Foundry reale, con conferma empirica del chunking
 
 ## Fase 2 — Catalogo utilizzabile: CRUD Asset + stati di certificazione
 
-**Cosa:** `CatalogService` con CRUD Asset (upload testo/link, lista, dettaglio, filtri), azioni `certifyAsset`/`deprecateAsset`, job notturno di scadenza certificazione (architecture.md §3.1).
+**Logica di business definita ✅ (07/09/2026)** — vedi architecture.md §2/§3.1/§7 per il dettaglio completo: flusso di revisione/approvazione (ogni pubblicazione, prima creazione inclusa, passa da una coda di revisione dei Certifier/Admin — anche a livello `community`), ruoli provvisori `isCertifier`/`isAdmin` su `Player`, transizioni di stato libere, eliminazione riservata ad Admin, ricerca full-text di default + "Ricerca approfondita" semantica opt-in, pesi di retrieval per certificazione (1.0/0.75/0.35), punti con `pointsPct` variabile sulle revisioni successive alla prima. Non ancora implementata.
+
+**Cosa:** `CatalogService` con `Asset`+`AssetRevision` (upload/modifica → coda di revisione → approvazione), azioni `reviewRevision`/`deprecateAsset`/`deleteAsset`, ricerca full-text + semantica, job notturno di scadenza certificazione (architecture.md §3.1).
 
 **Perché qui e non prima:** senza Fase 0/1 il catalogo esisterebbe ma Billy non lo userebbe in modo interessante (niente pesatura, niente link). Ora che il RAG "vede" la certificazione, dare alle persone un modo di certificare/gestire gli asset chiude il primo ciclo completo del prodotto (carica → certifica → Billy risponde meglio e cita la fonte).
 

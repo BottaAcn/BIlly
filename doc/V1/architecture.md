@@ -71,6 +71,13 @@ type AssetType : String enum {
   tool;
   application;
   interface;
+  other;   // categoria generica, nessun campo obbligatorio — vedi §3.1
+}
+
+type RevisionStatus : String enum {
+  pending;
+  approved;
+  rejected;
 }
 
 // -----------------------------------------------------------------
@@ -79,6 +86,7 @@ entity Asset : cuid, managed {
   description              : String(2000);
   type                     : AssetType not null;
   certificationLevel       : CertificationLevel default #community;
+  published                : Boolean default false;    // true solo dopo la prima revisione approvata — vedi §3.1
   certifiedAt              : Timestamp;
   certificationExpiresAt   : Timestamp;
   uploadedBy               : Association to Player not null;
@@ -86,7 +94,31 @@ entity Asset : cuid, managed {
   externalLink             : String(500);              // per skill/tool ospitati altrove
   attachments              : Composition of many Attachments; // @cap-js/attachments (D3)
   chunks                   : Composition of many Chunk on chunks.asset = $self;
+  revisions                : Composition of many AssetRevision on revisions.asset = $self;
   pointEvents              : Association to many PointEvent on pointEvents.asset = $self;
+}
+
+// -----------------------------------------------------------------
+// OGNI pubblicazione di contenuto — la primissima creazione E ogni modifica
+// successiva, a QUALUNQUE certificationLevel, `community` incluso — passa da
+// qui prima di diventare live. Decisione esplicita dell'utente: l'affidabilità
+// del contenuto conta più della velocità di pubblicazione, anche al livello
+// base (nota: questo è un cambio deliberato rispetto all'intento originario
+// di D10 di evitare la "morte per coda" — qui si accetta il trade-off).
+// -----------------------------------------------------------------
+entity AssetRevision : cuid, managed {
+  asset          : Association to Asset not null;
+  title          : String(200);
+  description    : String(2000);
+  content        : LargeString;                  // testo proposto, prima del chunking
+  type           : AssetType;
+  externalLink   : String(500);
+  status         : RevisionStatus default #pending;
+  submittedBy    : Association to Player not null;
+  reviewedBy     : Association to Player;
+  reviewedAt     : Timestamp;
+  pointsPct      : Integer default 100;           // scelto dal certificatore in approvazione (100 = prima certificazione, <100 per revisioni successive)
+  validityMonths : Integer;                       // scelto dal certificatore in approvazione
 }
 
 // -----------------------------------------------------------------
@@ -103,14 +135,22 @@ entity Chunk : cuid {
 }
 
 // -----------------------------------------------------------------
+type SeniorityLevel : String enum {
+  analyst;
+  senior;
+  manager;   // valore del livello — non confondere con il campo `manager` sotto (il capo di questa persona)
+}
+
 entity Player : cuid {
-  userId       : String(255) not null;   // subject/email da SAP ID Service (poi IAS)
-  displayName  : String(200);
-  department   : String(100);            // D13: nullo finché non c'è IAS, schema già pronto
-  manager      : String(200);
-  seniority    : String(50);
-  pointEvents  : Association to many PointEvent on pointEvents.player = $self;
-  totalPoints  : Integer default 0;      // denormalizzato per leaderboard veloce, ricalcolato da PointEvent
+  userId          : String(255) not null;   // subject/email da SAP ID Service (poi IAS)
+  displayName     : String(200);
+  department      : String(100);            // D13: nullo finché non c'è IAS, schema già pronto
+  manager         : String(200);            // riferimento al capo di questa persona (non il livello)
+  seniorityLevel  : SeniorityLevel;          // analyst | senior | manager
+  isCertifier     : Boolean default false;   // assegnato a mano dall'admin — provvisorio, enforcement reale solo con XSUAA (D15)
+  isAdmin         : Boolean default false;   // idem, per le azioni riservate ad Admin (eliminazione reale, ecc.)
+  pointEvents     : Association to many PointEvent on pointEvents.player = $self;
+  totalPoints     : Integer default 0;      // denormalizzato per leaderboard veloce, ricalcolato da PointEvent
 }
 
 // -----------------------------------------------------------------
@@ -142,7 +182,10 @@ entity PointEvent : cuid, managed {
 **Note di design:**
 - `certificationLevel` su `Chunk` viene aggiornato in una singola operazione batch quando l'Asset cambia stato (es. alla certificazione, tutti i chunk di quell'asset vengono aggiornati). Non è un trigger DB, è responsabilità del service layer (CAP non ha trigger nativi cross-entity puliti in Node.js).
 - `totalPoints` su `Player` è denormalizzato per performance della leaderboard; va ricalcolato (o incrementato atomicamente) ad ogni `PointEvent` creato.
-- Alla scadenza (`certificationExpiresAt` superato), un job schedulato transiziona `certified` → `certifiedOutdated` (D11) — mai indietro a `community`.
+- Alla scadenza (`certificationExpiresAt` superato), un job schedulato transiziona `certified` → `certifiedOutdated`.
+- **Transizioni di stato libere**: un `Certifier`/`Admin` può portare un Asset da **qualsiasi** stato a **qualsiasi** altro stato, sempre (nessuna state machine vincolata) — decisione esplicita dell'utente. Questo include la deprecazione (reversibile) e la ri-approvazione manuale in qualunque momento.
+- **Eliminazione reale**: possibile, ma riservata solo ad `Admin` (`isAdmin=true`) — i certificatori possono deprecare/certificare ma non eliminare in modo definitivo.
+- I chunk **non esistono/non sono ricercabili** finché `Asset.published = false` — vengono generati solo alla prima `AssetRevision` approvata (rigenerati ad ogni revisione successiva approvata).
 
 ---
 
@@ -150,13 +193,39 @@ entity PointEvent : cuid, managed {
 
 ### 3.1 `CatalogService` (marketplace)
 
+**Ruoli (provvisori, enforcement reale solo con XSUAA — D15):** `isCertifier`/`isAdmin` su `Player`, assegnati a mano dall'admin del progetto. Fino ad allora nessuna vera sicurezza server-side su queste azioni — solo logica applicativa.
+
+**Flusso di pubblicazione (vale per la prima creazione E per ogni modifica successiva, a qualunque `certificationLevel`):**
+
+```
+uploadAsset / editAsset
+        │  crea una AssetRevision(status: pending)
+        ▼
+   Coda di revisione (listReviewQueue) — visibile ai Certifier/Admin
+        │
+        ├── reviewRevision(revisionId, approve: true, validityMonths, pointsPct)
+        │      → Asset.title/description/type/externalLink = revisione approvata
+        │      → rigenera Chunk (chunking + embedding) dal nuovo content
+        │      → Asset.published = true, certificationLevel = certified,
+        │        certifiedBy, certifiedAt = now, certificationExpiresAt = now + validityMonths
+        │      → PointEvent uploader (pointsPct% dei punti pieni), PointEvent certificatore (D12)
+        │
+        └── reviewRevision(revisionId, approve: false, reason)
+               → status = rejected, Asset resta come prima (o non pubblicato se era il primo invio)
+```
+
 | Operazione | Tipo | Descrizione |
 |---|---|---|
-| `Asset` (CRUD) | entity | Lista, dettaglio, creazione, modifica. Filtri per `type`, `certificationLevel`, ricerca testuale su `title`/`description` |
-| `uploadAsset(title, description, type, content?, file?, externalLink?)` | action | Crea l'Asset, salva l'allegato (se presente), **triggera l'ingestion** (chunking + embedding, vedi §4) |
-| `certifyAsset(assetId, validityMonths)` | action | Solo per ruolo `Certifier`/`Admin` (post-XSUAA; senza auth, per ora aperta). Imposta `certificationLevel=certified`, `certifiedBy`, `certifiedAt`, `certificationExpiresAt = now + validityMonths`. Sincronizza i chunk. Crea `PointEvent` per uploader **e** certificatore (D12) |
-| `deprecateAsset(assetId)` | action | Imposta `deprecated`, esclude dal retrieval RAG (D10, tabella stati) |
-| Job schedulato `expireCertifications` | job | Ogni notte: `certified` con `certificationExpiresAt < now` → `certifiedOutdated` |
+| `Asset` (query) | entity | Lista, dettaglio. Filtri per `type`, `certificationLevel`. Solo asset con `published=true` compaiono nel catalogo/RAG |
+| `uploadAsset(title, description, type, content?, file?, externalLink?)` | action | Crea l'`Asset` (non pubblicato) + una `AssetRevision(status: pending, pointsPct: 100)` — **non** genera ancora chunk/embedding, quello avviene solo all'approvazione |
+| `editAsset(assetId, title?, description?, content?, ...)` | action | Crea una nuova `AssetRevision(status: pending)` sull'asset esistente — il contenuto live/pubblicato **non cambia** finché non è approvata |
+| `listReviewQueue()` | function | Per `Certifier`/`Admin`: unione di due liste — `AssetRevision` in stato `pending` (prime pubblicazioni o modifiche con nuovo contenuto) **e** `Asset` con `certificationLevel = certifiedOutdated` (scaduti, da ri-validare anche senza nuovo contenuto — in quel caso la ri-approvazione richiama `reviewRevision`-like logic sull'ultima revisione approvata, senza crearne una nuova) |
+| `reviewRevision(revisionId, approve, validityMonths?, pointsPct?, reason?)` | action | Approva (→ certifica, rigenera chunk, assegna punti) o rifiuta una revisione. Solo `Certifier`/`Admin` |
+| `deprecateAsset(assetId)` / `certifyAsset(assetId)` / qualunque altra transizione di stato diretta | action | Solo `Certifier`/`Admin` — transizioni libere, qualsiasi stato → qualsiasi stato (vedi note di design §2) |
+| `deleteAsset(assetId)` | action | Eliminazione reale, **solo `Admin`** |
+| Ricerca full-text (default) | function | `LIKE`/`CONTAINS` su `title`/`description` — istantanea, nessuna chiamata AI |
+| `deepSearch(query)` | function | Pulsante **"Ricerca approfondita"** — ricerca semantica: embedding della query, `COSINE_SIMILARITY` sui `Chunk` esistenti (riusa gli embedding già calcolati, nessun embedding aggiuntivo da creare), risale agli `Asset` distinti trovati. Opt-in, non sostituisce la ricerca di default |
+| Job schedulato `expireCertifications` | job | Ogni notte: `certified` con `certificationExpiresAt < now` → `certifiedOutdated` (compare automaticamente in `listReviewQueue`, vedi sopra) |
 
 ### 3.2 `BillyService` (RAG, estende v0.0.1)
 
@@ -236,7 +305,7 @@ Domanda utente
 
 **Chunking — da misurare, non assumere (D8):** dimensione di partenza 500-800 caratteri con overlap 100, ma va validato empiricamente con documenti reali della practice (ancora da caricare, vedi HANDOFF §8) prima di considerarlo definitivo.
 
-**Retrieval — pesatura per certificazione:** implementazione minima v1: query SQL con `WHERE certificationLevel != 'deprecated'`, poi in applicazione moltiplicare la similarity per un peso (`certified`: 1.0, `certifiedOutdated`: 0.8, `community`: 0.6) prima di riordinare e prendere il top-k finale.
+**Retrieval — pesatura per certificazione:** implementazione minima v1: query SQL con `WHERE certificationLevel != 'deprecated'`, poi in applicazione moltiplicare la similarity per un peso (`certified`: **1.0**, `certifiedOutdated`: **0.75**, `community`: **0.35** — salto netto tra `certifiedOutdated` e `community`, per esplicita richiesta) prima di riordinare e prendere il top-k finale. Il peso è **dinamico**: applicato ad ogni singola query in base allo stato *attuale* dell'asset in quel momento, non un valore fissato una tantum — se lo stato cambia, il peso cambia automaticamente dalla query successiva senza bisogno di ricalcoli.
 
 ---
 
@@ -268,10 +337,12 @@ Domanda utente
 
 | Evento | Punti a chi carica | Punti a chi certifica | Note |
 |---|---|---|---|
-| Upload asset | Punti pieni | — | Stato iniziale `community` |
-| Certificazione | Mantenuti | Punti pieni | D12 — incentivo esplicito ai senior a certificare |
+| Upload asset (revisione creata, ancora `pending`) | Nessuno ancora | — | Niente punti finché non è approvata — coerente con "ogni pubblicazione va approvata" |
+| Approvazione prima revisione (→ `certified`) | Punti pieni (`pointsPct=100`) | Punti pieni | D12 — incentivo esplicito ai senior a certificare |
+| Approvazione revisione successiva (modifica di un asset già esistente) | `pointsPct`% dei punti pieni, **scelto dal certificatore** (non necessariamente 100%) | Punti pieni per il lavoro di revisione (fisso, non scalato) | Una modifica minore vale meno di una certificazione da zero — a discrezione del certificatore caso per caso |
 | Uso (Billy cita l'asset in una risposta) | Punti ridotti, opzionale | — | Da validare se ha senso ai fini del progetto — impatto su Player poco chiaro finché non c'è un caso d'uso concreto |
 | Scadenza → `certifiedOutdated` | Mantenuti | Mantenuti | D11 — nessuna penalità retroattiva |
+| Ri-approvazione dopo scadenza | Come "revisione successiva" sopra | Punti pieni | Torna a `certified` con nuova `certificationExpiresAt` |
 
 **Stagioni:** durata da definire (mensile? trimestrale?) — non ancora deciso, va discusso prima di implementare `Season`. Alla chiusura, il vincitore riceve un premio (meccanismo di premiazione fuori dallo scope tecnico di questo documento).
 
