@@ -10,7 +10,10 @@ La regola guida: **prima le cose che sbloccano tutto il resto e costano poco**, 
 
 ---
 
-## Fase 0 — Modello dati esteso + migrazione (fondamenta)
+## Fase 0 — Modello dati esteso + migrazione (fondamenta) — ✅ COMPLETATA (07/09/2026)
+
+Verificata end-to-end su Cloud Foundry reale. Dettaglio: [fase0-checklist.md](fase0-checklist.md). Scoperta non prevista: `undeploy.json` di default non droppa tabelle per sicurezza (solo view/index/constraint) — serve un `db/undeploy.json` esplicito per rimuovere entità cancellate dal modello, altrimenti restano orfane su HANA.
+
 
 **Cosa:** Sostituire l'entità `Document` (v0.0.1) con `Asset`+`Chunk`+`Player`+`Season`+`PointEvent` (architecture.md §2). Riadattare `addDocument`/`askBilly` esistenti al nuovo modello **senza aggiungere ancora nuove funzionalità** — un asset = un chunk per ora, esattamente come oggi, solo su tabelle nuove.
 

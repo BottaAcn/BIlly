@@ -12,8 +12,11 @@ service BillyService @(path: 'billy', protocol: 'rest') {
   action askBilly(question: String) returns {
     answer  : String;
     sources : array of {
-      title      : String;
-      similarity : Double;
+      assetId            : UUID;
+      title              : String;
+      similarity         : Double;
+      certificationLevel : String;
+      link               : String;
     };
   };
 }

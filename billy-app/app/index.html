@@ -59,7 +59,11 @@ async function askBilly() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question })
     });
-    out.textContent = JSON.stringify(await res.json(), null, 2);
+    const data = await res.json();
+    const sourcesHtml = (data.sources || [])
+      .map(s => `<li><a href="${s.link}">${s.title}</a> — [${s.certificationLevel}] similarity ${s.similarity.toFixed(3)}</li>`)
+      .join('');
+    out.innerHTML = `<p>${data.answer ? data.answer.replace(/\n/g, '<br>') : ''}</p><ul>${sourcesHtml}</ul>`;
   } catch (e) {
     out.textContent = 'Errore: ' + e.message;
   }

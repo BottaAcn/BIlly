@@ -16,6 +16,35 @@ const RESOURCE_GROUP = 'team-ai-contest-3';
 const EMBEDDING_MODEL = 'text-embedding-3-large';
 const LLM_MODEL = 'anthropic--claude-4.6-sonnet';
 
+// Chunking a caratteri, deliberatamente semplice: da rivedere quando si
+// avranno documenti reali della practice da usare per misurare la qualità
+// del retrieval (architecture.md §4, D8 — non assumere, misurare).
+const CHUNK_SIZE = 700;
+const CHUNK_OVERLAP = 100;
+
+function chunkText(text) {
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    const end = Math.min(start + CHUNK_SIZE, text.length);
+    chunks.push(text.slice(start, end));
+    if (end === text.length) break;
+    start = end - CHUNK_OVERLAP;
+  }
+  return chunks;
+}
+
+// Peso applicato alla similarity grezza in base allo stato di certificazione
+// (architecture.md §4 / D10). 'deprecated' non compare qui: è escluso a
+// monte dalla query, non solo penalizzato.
+const CERTIFICATION_WEIGHT_SQL = `
+  CASE c."CERTIFICATIONLEVEL"
+    WHEN 'certified' THEN 1.0
+    WHEN 'certifiedOutdated' THEN 0.8
+    WHEN 'community' THEN 0.6
+    ELSE 0.6
+  END`;
+
 // Nessun utente reale finché XSUAA non è attiva (D15). Placeholder tecnico
 // da rimuovere quando l'auth reale sostituirà questo utente fittizio con
 // l'utente autenticato (cds.context.user).
@@ -64,18 +93,20 @@ module.exports = class BillyService extends cds.ApplicationService {
       modelName: EMBEDDING_MODEL,
       resourceGroup: RESOURCE_GROUP
     });
-    const response = await embedClient.run({ input: [content] });
-    const embedding = response.getEmbedding();
 
-    // Fase 0: 1 asset = 1 chunk (nessun chunking reale — Fase 1).
-    await INSERT.into('billy.Chunk').entries({
-      ID: crypto.randomUUID(),
-      asset_ID: assetID,
-      text: content,
-      embedding: `[${embedding.join(',')}]`,
-      certificationLevel: 'community',
-      chunkIndex: 0
-    });
+    const segments = chunkText(content);
+    for (let i = 0; i < segments.length; i++) {
+      const response = await embedClient.run({ input: [segments[i]] });
+      const embedding = response.getEmbedding();
+      await INSERT.into('billy.Chunk').entries({
+        ID: crypto.randomUUID(),
+        asset_ID: assetID,
+        text: segments[i],
+        embedding: `[${embedding.join(',')}]`,
+        certificationLevel: 'community',
+        chunkIndex: i
+      });
+    }
 
     return { ID: assetID, title, type: 'document', certificationLevel: 'community' };
   };
@@ -92,19 +123,22 @@ module.exports = class BillyService extends cds.ApplicationService {
     });
     const qEmbedding = (await embedClient.run({ input: [question] })).getEmbedding();
 
-    // Fase 0: nessuna esclusione/pesatura per certificationLevel ancora
-    // (Fase 1). "TEXT" va quotata: è parola riservata in SQL HANA.
+    // "TEXT" va quotata: è parola riservata in SQL HANA. Esclude i chunk
+    // di asset 'deprecated' (WHERE, non solo penalizzati) e pesa la
+    // similarity per certificationLevel (architecture.md §4, D10).
     const rows = await cds.run(
-      `SELECT TOP 3 c."ID" as "ID", a."TITLE" as "TITLE", c."TEXT" as "TEXT",
-              COSINE_SIMILARITY(c."EMBEDDING", TO_REAL_VECTOR(?)) AS "SIMILARITY"
+      `SELECT TOP 3 a."ID" as "ASSETID", a."TITLE" as "TITLE", c."TEXT" as "TEXT",
+              c."CERTIFICATIONLEVEL" as "CERTIFICATIONLEVEL",
+              COSINE_SIMILARITY(c."EMBEDDING", TO_REAL_VECTOR(?)) * ${CERTIFICATION_WEIGHT_SQL} AS "SIMILARITY"
        FROM "BILLY_CHUNK" as c
        JOIN "BILLY_ASSET" as a ON a."ID" = c."ASSET_ID"
+       WHERE c."CERTIFICATIONLEVEL" != 'deprecated'
        ORDER BY "SIMILARITY" DESC`,
       [`[${qEmbedding.join(',')}]`]
     );
 
     const context = rows.length
-      ? rows.map((r) => `- ${r.TITLE}: ${r.TEXT}`).join('\n')
+      ? rows.map((r) => `- [${r.CERTIFICATIONLEVEL}] ${r.TITLE}: ${r.TEXT}`).join('\n')
       : '(nessun documento in archivio)';
 
     const llm = new OrchestrationClient(
@@ -113,14 +147,25 @@ module.exports = class BillyService extends cds.ApplicationService {
     );
     const res = await llm.chatCompletion({
       messages: [
-        { role: 'system', content: `Rispondi usando solo questo contesto:\n${context}` },
+        {
+          role: 'system',
+          content: `Rispondi usando solo questo contesto. Ogni fonte è preceduta dal suo stato di certificazione tra parentesi quadre. Se una fonte usata per la risposta non è "certified", avvisa esplicitamente l'utente che l'informazione non è (ancora) certificata.\n${context}`
+        },
         { role: 'user', content: question }
       ]
     });
 
     return {
       answer: res.getContent(),
-      sources: rows.map((r) => ({ title: r.TITLE, similarity: r.SIMILARITY }))
+      // Link placeholder: non è una route reale finché il frontend/catalogo
+      // (Fase 4) non esiste. È il contratto che il frontend implementerà.
+      sources: rows.map((r) => ({
+        assetId: r.ASSETID,
+        title: r.TITLE,
+        similarity: r.SIMILARITY,
+        certificationLevel: r.CERTIFICATIONLEVEL,
+        link: `/catalog/asset/${r.ASSETID}`
+      }))
     };
   };
 };
