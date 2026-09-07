@@ -86,19 +86,19 @@ Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approv
 
 ---
 
-## Fase 5 — Upload file reale (HANA storage + attachments + malware scan)
+## Fase 5 — Upload file reale (HANA storage, malware scan NON incluso per ora)
 
-**Aggiornata (08/09/2026) dopo verifica tecnica.** Bozza precedente prevedeva Object Store; verificando il codice sorgente di `@cap-js/attachments` è emerso che lo storage `kind: "db"` (BLOB su HANA, già disponibile, zero costi aggiuntivi) supporta comunque il malware scanning reale — è un servizio (SAP Malware Scanning Service) indipendente dallo storage, non incluso solo in Object Store. Vedi architecture.md §6 per il dettaglio tecnico completo. Riccardo (admin) ha comunque indicato HANA come storage quando interpellato, quindi questa è anche la scelta allineata con l'admin, non solo quella tecnicamente più economica.
+**Aggiornata (08/09/2026) due volte.** Prima verifica tecnica: bozza precedente prevedeva Object Store; verificando il codice sorgente di `@cap-js/attachments` è emerso che lo storage `kind: "db"` (BLOB su HANA, già disponibile, zero costi aggiuntivi) supporterebbe comunque il malware scanning reale come servizio indipendente (SAP Malware Scanning Service). **Decisione successiva esplicita dell'utente**: per questa fase non si attiva neanche quel servizio — niente scanning, solo un placeholder di stato visibile (`Unscanned`, mai risolto). Lo scanning reale è rimandato a **subito prima di XSUAA (Fase 8) o eventualmente mai**, deliberatamente non deciso ora. Dettaglio tecnico completo e motivazione del rischio accettato: architecture.md §6.
 
-**Cosa:** Sostituire "incolla testo" con upload file vero: `@cap-js/attachments` con storage `kind: "db"` su HANA (nessun Object Store), bind del **SAP Malware Scanning Service** (nuovo entitlement, separato — vedi architecture.md §6), estrazione testo da PDF/docx (architecture.md §6).
+**Cosa:** Sostituire "incolla testo" con upload file vero: `@cap-js/attachments` con storage `kind: "db"` su HANA (nessun Object Store, nessun bind del Malware Scanning Service), stato `Unscanned` lasciato visibile su ogni allegato come promemoria esplicito del gap, estrazione testo da PDF/docx (architecture.md §6).
 
-**Perché qui e non prima:** ha comunque una dipendenza **esterna** (entitlement Malware Scanning Service, non più Object Store) che conviene richiedere in parallelo fin da subito, ma l'implementazione stessa non blocca nessuna delle fasi precedenti — si può continuare a popolare il catalogo con testo incollato o link esterni per tutto il tempo necessario a validare RAG, catalogo, gamification e frontend. **Perché qui e non dopo**: è comunque necessaria prima di un rollout reale a ~200 persone, che difficilmente accetterebbero di "incollare testo a mano".
+**Perché qui e non prima:** nessuna dipendenza esterna bloccante ora (l'unico entitlement esterno, il Malware Scanning Service, è stato rimandato) — la fase si può fare interamente con quello che il subaccount ha già. Non blocca nessuna fase precedente: si può continuare a popolare il catalogo con testo incollato o link esterni fino a quando questa fase non è pronta. **Perché qui e non dopo**: comunque necessaria prima di un rollout reale a ~200 persone, che difficilmente accetterebbero di "incollare testo a mano".
 
-**Effort:** M (ridotto da L) — niente nuova infrastruttura di storage da integrare (si riusa HANA, già in produzione), solo il bind del servizio di scanning + libreria di estrazione testo da scegliere e testare.
-**Valore percepito:** Alto per l'adozione reale, ma il prodotto è già dimostrabile/testabile senza.
+**Effort:** S-M (ridotto ulteriormente) — niente nuova infrastruttura di storage, niente nuovo entitlement da aspettare. Solo `@cap-js/attachments` + libreria di estrazione testo da scegliere e testare.
+**Valore percepito:** Alto per l'adozione reale, ma il prodotto è già dimostrabile/testabile senza. **Rischio accettato consapevolmente**: file caricati non passano controllo antivirus fino a quando (e se) si deciderà di attivarlo — accettabile in fase di sviluppo/test, da rivalutare esplicitamente prima di un rollout reale (non implicitamente).
 **Dipendenze:** Fase 0 (Asset deve esistere). Indipendente dalle Fasi 1-4, può essere anticipata o posticipata con flessibilità.
 
-**Azione da fare SUBITO, non aspettare questa fase:** verificare/richiedere l'entitlement **SAP Malware Scanning Service** (piano `clamav` o `standard`) nel subaccount — è un lead time amministrativo, non tecnico. Non serve più chiedere Object Store.
+**Nessuna azione amministrativa da fare subito**: a differenza della bozza precedente, non serve più chiedere né Object Store né il Malware Scanning Service finché non si decide di chiudere il gap (vedi Fase 8).
 
 ---
 
@@ -136,6 +136,8 @@ Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approv
 **Valore percepito:** Necessario per il rollout reale (senza auth non si va in produzione con 200 persone), ma zero valore dimostrativo prima di allora.
 **Dipendenze:** tutto il resto.
 
+**Decisione da riprendere qui, non prima (rimandata dalla Fase 5, architecture.md §6):** valutare se attivare finalmente il **Malware Scanning Service** sugli allegati (ancora `Unscanned` da quando è stato introdotto l'upload file). Se si decide di sì, va richiesto l'entitlement all'admin (stesso pattern già usato per HANA Cloud/AI Core) e bindato secondo `@cap-js/attachments`. Se si decide di no, va comunque una decisione esplicita e documentata prima del rollout reale — non un'omissione.
+
 ---
 
 ## Fase 9 — CI/CD (quando serve)
@@ -160,6 +162,6 @@ Fase 9  → CI/CD                                         [quando serve]
 ```
 
 **Cosa fare in parallelo fin da subito, indipendentemente dalla fase tecnica in corso:**
-- Verificare/richiedere l'entitlement SAP Malware Scanning Service (lead time amministrativo — Object Store non serve più, vedi Fase 5)
+- ~~Verificare/richiedere l'entitlement SAP Malware Scanning Service~~ — **non serve più subito**: deciso di rimandare l'attivazione dello scanning a Fase 8 (o mai), vedi Fase 5/architecture.md §6
 - Decidere durata stagioni e meccanismo di premiazione (blocca solo la Fase 3, ma è una decisione di prodotto, non tecnica — si può chiudere in parallelo)
 - Iniziare a raccogliere/caricare i documenti reali della practice per validare il chunking (Fase 1) il prima possibile con dati veri, non sintetici

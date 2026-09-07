@@ -349,10 +349,18 @@ Domanda utente
 - **Efficienza**: HANA usa "Hybrid LOB" — i file di dimensioni sopra una soglia vengono spostati automaticamente su disco (non restano in RAM), quindi non gonfiano la memoria del database anche con molti file caricati
 - **Compromesso onesto da tenere presente**: ogni download passa comunque attraverso il motore del database invece che uno storage dedicato — per un uso interno con ~200 persone non è un problema atteso, ma va monitorato se il volume di file/download crescesse molto in futuro. Non è un limite bloccante oggi, è un'osservazione per il futuro.
 
-### Cosa resta da fare in Fase 5
+### Decisione (08/09/2026): malware scanning NON implementato per ora — placeholder, non silenzio
+
+**Scelta esplicita dell'utente**: in Fase 5 si implementa l'upload file reale (`@cap-js/attachments`, storage `kind: "db"` su HANA) **senza** bindare il Malware Scanning Service. Lo scanning reale si farà eventualmente **subito prima di attivare XSUAA (Fase 8), oppure mai** — è una decisione volutamente aperta, non un impegno a farlo per forza in futuro.
+
+**Perché "placeholder, non silenzio"**: la Fase 5 deve comunque prevedere un **campo/stato esplicito** sull'allegato che segnali "non scansionato" (es. `scanStatus: 'not_scanned'` invece di ometterlo del tutto), così il gap è visibile in ogni punto del codice/UI che mostra un file, e non un fatto dimenticato scoperto per caso più avanti. `@cap-js/attachments` gestisce già uno stato `Unscanned` di suo (vedi sopra) — usare quello com'è, semplicemente senza mai bindare un vero scanner, è già la via più semplice per ottenere questo comportamento.
+
+**Rischio accettato consapevolmente, da ricordare:** finché non si attiva lo scanning, un file infetto caricato da qualcuno sarebbe scaricabile da chiunque altro senza controlli. Accettabile per ora (uso interno, in fase di sviluppo/test, non ancora un rollout a ~200 persone), ma **da rivalutare esplicitamente prima di un rollout reale** — non implicitamente perché "ce ne dimentichiamo".
+
+### Cosa resta da fare in Fase 5 (aggiornato)
 
 - **`@cap-js/attachments`** in composition su `Asset`, configurato con storage `kind: "db"` (nessun binding Object Store necessario)
-- Bind del **SAP Malware Scanning Service** (nuovo entitlement da richiedere — vedi messaggio pronto per l'admin più sotto in questo documento o nella conversazione)
+- **Malware Scanning Service: NON bindato** — placeholder di stato (`Unscanned`) visibile, nessuna richiesta di entitlement da fare ora. Rivalutare (vedi sopra) prima di Fase 8 (XSUAA) o del rollout reale.
 - Estrazione testo da file (PDF/docx) per l'ingestion: libreria da scegliere in fase di implementazione (es. `pdf-parse` per PDF, `mammoth` per docx) — non ancora scelta, va valutata quando si arriva a questa fase
 
 ---
@@ -397,7 +405,7 @@ Estende l'MTA minimo di v0.0.1 (2 moduli: `billy-srv` + `billy-db-deployer`) agg
 | Modulo/risorsa | Quando serve | Tipo |
 |---|---|---|
 | `billy-srv`, `billy-db-deployer`, `billy-hdi-container` | Già esistenti da v0.0.1 | — |
-| `billy-malware-scanner` (SAP Malware Scanning Service) | Quando si implementa upload file reale (§6) — Object Store **non** usato, storage su HANA | resource |
+| `billy-malware-scanner` (SAP Malware Scanning Service) | **NON aggiunto in Fase 5** (decisione esplicita, §6) — solo se/quando si decide di attivare lo scanning, non prima di Fase 8 | resource, condizionale |
 | `billy-ui` (build React) | Quando il frontend React sostituisce l'HTML di test | module (`html5`) |
 | `billy-app-deployer` | Insieme a `billy-ui` | module (`com.sap.html5.application-content`) |
 | `html5-repo-host` / `html5-repo-runtime` | Insieme a `billy-ui` | resource |
@@ -410,7 +418,7 @@ Estende l'MTA minimo di v0.0.1 (2 moduli: `billy-srv` + `billy-db-deployer`) agg
 ## 11. Aspetti non funzionali
 
 - **Logging**: SAP Cloud Logging (non Application Logging, in deprecazione — preflight §7.5)
-- **Costo**: monitorare consumo token AI Core (dominato dall'input, da cui D8) e costo del piano SAP Malware Scanning Service richiesto (§6) — Object Store non è più nello scope, quindi il suo costo non si applica
+- **Costo**: monitorare consumo token AI Core (dominato dall'input, da cui D8). Object Store e Malware Scanning Service **non sono nello scope attuale** (§6, decisione esplicita di rimandare/eventualmente saltare lo scanning) — nessun costo aggiuntivo da questi due per ora
 - **CI/CD**: non nello scope di questo documento, da affrontare quando il ritmo di rilascio lo giustifica
 
 ---
