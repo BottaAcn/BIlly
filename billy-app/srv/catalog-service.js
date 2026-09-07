@@ -1,12 +1,46 @@
 const cds = require('@sap/cds');
+const { pipeline } = require('node:stream/promises');
 const { embed } = require('./lib/ai');
 const { chunkText } = require('./lib/chunking');
 const { getOrCreateDefaultPlayer } = require('./lib/default-player');
+const { extractText } = require('./lib/text-extraction');
 
 function addMonthsISO(months) {
   const d = new Date();
   d.setMonth(d.getMonth() + (months || 12));
   return d.toISOString();
+}
+
+// Fase 5: risolve il contenuto testuale di una revisione da uno dei due
+// input supportati (testo incollato o file). Uno dei due è obbligatorio.
+async function resolveContent({ content, fileContent, fileName, fileMimeType }) {
+  if (fileContent) {
+    const buffer = Buffer.from(fileContent, 'base64');
+    const text = await extractText(buffer, fileMimeType, fileName);
+    return { text, fileBuffer: buffer };
+  }
+  if (content) {
+    return { text: content, fileBuffer: null };
+  }
+  const err = new Error('Fornire almeno uno tra "content" (testo incollato) e "fileContent" (file, base64)');
+  err.code = 400;
+  err.status = 400;
+  throw err;
+}
+
+// Fase 5: allega il file originale all'Asset (storage "db" su HANA, scan
+// disattivato — architecture.md §6). Non blocca la pipeline di ingestion:
+// il testo estratto è già stato usato altrove, questo serve solo per poter
+// riscaricare il file originale in futuro.
+async function attachFile(assetsAttachmentsEntity, assetId, buffer, fileName, mimeType) {
+  const AttachmentsSrv = await cds.connect.to('attachments');
+  await AttachmentsSrv.put(assetsAttachmentsEntity, {
+    ID: crypto.randomUUID(),
+    up__ID: assetId,
+    content: buffer,
+    filename: fileName || 'file',
+    mimeType: mimeType || 'application/octet-stream'
+  });
 }
 
 async function regenerateChunks(assetId, content, certificationLevel) {
@@ -51,6 +85,7 @@ module.exports = class CatalogService extends cds.ApplicationService {
     this.on('reviewRevision', this.onReviewRevision);
     this.on('setCertificationLevel', this.onSetCertificationLevel);
     this.on('deleteAsset', this.onDeleteAsset);
+    this.on('downloadAttachment', this.onDownloadAttachment);
     this.on('searchAssets', this.onSearchAssets);
     this.on('deepSearch', this.onDeepSearch);
     this.on('expireCertifications', this.onExpireCertifications);
@@ -66,7 +101,9 @@ module.exports = class CatalogService extends cds.ApplicationService {
   }
 
   onUploadAsset = async (req) => {
-    const { title, description, type, content, externalLink } = req.data;
+    const { title, description, type, content, externalLink, fileContent, fileName, fileMimeType } = req.data;
+    const { text, fileBuffer } = await resolveContent({ content, fileContent, fileName, fileMimeType });
+
     const player = await getOrCreateDefaultPlayer();
     const assetID = crypto.randomUUID();
 
@@ -88,36 +125,47 @@ module.exports = class CatalogService extends cds.ApplicationService {
       asset_ID: assetID,
       title,
       description,
-      content,
+      content: text,
       type: type || 'document',
       externalLink,
       status: 'pending',
       submittedBy_ID: player.ID
     });
 
+    if (fileBuffer) {
+      await attachFile(this.entities['Asset.attachments'], assetID, fileBuffer, fileName, fileMimeType);
+    }
+
     return { ID: assetID, title, description, type: type || 'document', certificationLevel: 'community', published: false };
   };
 
   onEditAsset = async (req) => {
-    const { assetId, title, description, content, type, externalLink } = req.data;
+    const { assetId, title, description, content, type, externalLink, fileContent, fileName, fileMimeType } = req.data;
     const asset = await SELECT.one.from('billy.Asset').where({ ID: assetId });
     if (!asset) return req.error(404, `Asset ${assetId} non trovato`);
+
+    const { text, fileBuffer } = await resolveContent({ content, fileContent, fileName, fileMimeType });
 
     const player = await getOrCreateDefaultPlayer();
     const revisionID = crypto.randomUUID();
     // Il contenuto live/pubblicato non cambia finché la revisione non è
-    // approvata (architecture.md §3.1).
+    // approvata (architecture.md §3.1). Un eventuale nuovo file viene
+    // comunque allegato subito all'Asset (limite noto, vedi db/schema.cds).
     await INSERT.into('billy.AssetRevision').entries({
       ID: revisionID,
       asset_ID: assetId,
       title,
       description,
-      content,
+      content: text,
       type,
       externalLink,
       status: 'pending',
       submittedBy_ID: player.ID
     });
+
+    if (fileBuffer) {
+      await attachFile(this.entities['Asset.attachments'], assetId, fileBuffer, fileName, fileMimeType);
+    }
 
     return { revisionId: revisionID };
   };
@@ -254,10 +302,44 @@ module.exports = class CatalogService extends cds.ApplicationService {
     if (!player.isAdmin) {
       return req.error(403, 'Solo Admin può eliminare un asset in modo definitivo');
     }
+    // Fase 5: elimina anche gli allegati, altrimenti resterebbero BLOB
+    // orfani su HANA (stesso problema già affrontato per billy.Document
+    // in Fase 0, stavolta prevenuto invece di scoperto a posteriori).
+    await DELETE.from('billy.Asset.attachments').where({ up__ID: assetId });
     await DELETE.from('billy.Chunk').where({ asset_ID: assetId });
     await DELETE.from('billy.AssetRevision').where({ asset_ID: assetId });
     await DELETE.from('billy.Asset').where({ ID: assetId });
     return true;
+  };
+
+  // Bypassa l'endpoint auto-generato da @cap-js/attachments (buggato con
+  // protocol: 'rest', vedi catalog-service.cds): legge il BLOB direttamente
+  // e scrive la risposta HTTP a mano, senza passare dall'evento READ su cui
+  // il plugin registra i suoi hook before/after.
+  onDownloadAttachment = async (req) => {
+    const { assetId, attachmentId } = req.data;
+    const attachmentsEntity = this.entities['Asset.attachments'];
+
+    const attachment = await SELECT.one.from(attachmentsEntity)
+      .where({ ID: attachmentId, up__ID: assetId })
+      .columns('filename', 'mimeType');
+    if (!attachment) return req.error(404, `Allegato ${attachmentId} non trovato per l'asset ${assetId}`);
+
+    const AttachmentsSrv = await cds.connect.to('attachments');
+    const content = await AttachmentsSrv.get(attachmentsEntity, { ID: attachmentId });
+    if (!content) return req.error(404, 'Nessun contenuto disponibile per questo allegato');
+
+    req.res.set('Content-Type', attachment.mimeType || 'application/octet-stream');
+    req.res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.filename || 'file')}"`);
+
+    // Su HANA il driver restituisce le colonne LargeBinary come stream
+    // leggibile, non come Buffer (a differenza di sqlite in locale) — va
+    // quindi inoltrato con pipe(), non passato a res.send().
+    if (typeof content.pipe === 'function') {
+      await pipeline(content, req.res);
+    } else {
+      req.res.send(content);
+    }
   };
 
   onSearchAssets = async (req) => {

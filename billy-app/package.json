@@ -6,10 +6,13 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@cap-js/attachments": "^4.0.0",
     "@cap-js/hana": "^3",
     "@sap-ai-sdk/foundation-models": "^2.15.0",
     "@sap-ai-sdk/orchestration": "^2.15.0",
-    "@sap/cds": "^10"
+    "@sap/cds": "^10",
+    "mammoth": "^1.12.2",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^3"
@@ -18,6 +21,9 @@
     "start": "cds-serve"
   },
   "cds": {
+    "server": {
+      "body_parser": { "limit": "15mb" }
+    },
     "requires": {
       "db": {
         "kind": "sqlite",
@@ -27,6 +33,15 @@
       },
       "auth": {
         "kind": "dummy"
+      },
+      "attachments": {
+        "kind": "db",
+        "scan": false,
+        "[production]": { "kind": "db", "scan": false }
+      },
+      "malwareScanner": {
+        "kind": "malwareScanner-mocked",
+        "[production]": { "kind": "malwareScanner-mocked" }
       }
     }
   },

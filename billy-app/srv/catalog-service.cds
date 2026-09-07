@@ -12,7 +12,13 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
     description  : String,
     type         : String,
     content      : String,
-    externalLink : String
+    externalLink : String,
+    // Fase 5 — upload file reale, alternativo/aggiuntivo al testo incollato
+    // (uno dei due va fornito). fileContent è base64, decodificato lato
+    // server. Storage su HANA (kind "db"), niente Object Store.
+    fileContent  : LargeString,
+    fileName     : String,
+    fileMimeType : String
   ) returns Asset;
 
   action editAsset(
@@ -21,7 +27,10 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
     description  : String,
     content      : String,
     type         : String,
-    externalLink : String
+    externalLink : String,
+    fileContent  : LargeString,
+    fileName     : String,
+    fileMimeType : String
   ) returns { revisionId : UUID };
 
   function listReviewQueue() returns array of {
@@ -49,6 +58,13 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
   ) returns Asset;
 
   action deleteAsset(assetId: UUID) returns Boolean;
+
+  // Fase 5 — download dell'allegato originale. Bypassa di proposito
+  // l'endpoint auto-generato da @cap-js/attachments su Asset.attachments/*/content:
+  // quell'endpoint assume richieste OData (req.params popolato in un certo modo)
+  // e con protocol:'rest' crasha l'intero processo (vedi registro deviazioni,
+  // fase5-checklist.md). Risposta scritta direttamente su req.res, non via `returns`.
+  function downloadAttachment(assetId: UUID, attachmentId: UUID) returns Boolean;
 
   function searchAssets(query: String) returns array of Asset;
 

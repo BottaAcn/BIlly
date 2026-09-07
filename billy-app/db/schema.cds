@@ -1,6 +1,7 @@
 namespace billy;
 
 using { cuid, managed } from '@sap/cds/common';
+using { Attachments } from '@cap-js/attachments';
 
 type CertificationLevel : String enum {
   community;
@@ -47,9 +48,12 @@ entity Asset : cuid, managed {
   uploadedBy             : Association to Player not null;
   certifiedBy            : Association to Player;
   externalLink           : String(500);
-  // `attachments` (file upload reale, @cap-js/attachments + Object Store)
-  // NON aggiunto in questa fase: richiede Object Store, fuori scope
-  // (Fase 5, architecture.md §6/§10).
+  // Storage kind "db" su HANA (nessun Object Store), scan disattivato
+  // (placeholder "Unscanned" visibile, non silenzio — architecture.md §6).
+  // Nota: vive sull'Asset, non su AssetRevision — un editAsset con nuovo
+  // file lo allega prima dell'approvazione della revisione (limite noto,
+  // non bloccante per il flusso principale di prima pubblicazione).
+  attachments            : Composition of many Attachments;
   chunks                 : Composition of many Chunk on chunks.asset = $self;
   revisions              : Composition of many AssetRevision on revisions.asset = $self;
   pointEvents            : Association to many PointEvent on pointEvents.asset = $self;

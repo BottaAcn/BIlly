@@ -86,7 +86,7 @@ Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approv
 
 ---
 
-## Fase 5 — Upload file reale (HANA storage, malware scan NON incluso per ora)
+## Fase 5 — Upload file reale (HANA storage, malware scan NON incluso per ora) — ✅ COMPLETATA (08/09/2026)
 
 **Aggiornata (08/09/2026) due volte.** Prima verifica tecnica: bozza precedente prevedeva Object Store; verificando il codice sorgente di `@cap-js/attachments` è emerso che lo storage `kind: "db"` (BLOB su HANA, già disponibile, zero costi aggiuntivi) supporterebbe comunque il malware scanning reale come servizio indipendente (SAP Malware Scanning Service). **Decisione successiva esplicita dell'utente**: per questa fase non si attiva neanche quel servizio — niente scanning, solo un placeholder di stato visibile (`Unscanned`, mai risolto). Lo scanning reale è rimandato a **subito prima di XSUAA (Fase 8) o eventualmente mai**, deliberatamente non deciso ora. Dettaglio tecnico completo e motivazione del rischio accettato: architecture.md §6.
 

@@ -20,7 +20,8 @@
   <fieldset>
     <legend>1. Carica asset</legend>
     <input id="docTitle" placeholder="Titolo">
-    <textarea id="docContent" placeholder="Contenuto"></textarea>
+    <textarea id="docContent" placeholder="Contenuto (testo incollato) — oppure scegli un file sotto"></textarea>
+    <input id="docFile" type="file" accept=".pdf,.docx,.txt">
     <button onclick="uploadAsset()">Carica (va in revisione)</button>
     <pre id="addResult"></pre>
   </fieldset>
@@ -39,16 +40,33 @@
   </fieldset>
 
 <script>
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]); // strip data:...;base64,
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadAsset() {
   const title = document.getElementById('docTitle').value;
   const content = document.getElementById('docContent').value;
+  const fileInput = document.getElementById('docFile');
+  const file = fileInput.files[0];
   const out = document.getElementById('addResult');
   out.textContent = 'Attendere...';
   try {
+    const body = { title, description: '', type: 'document', content, externalLink: '' };
+    if (file) {
+      body.fileContent = await readFileAsBase64(file);
+      body.fileName = file.name;
+      body.fileMimeType = file.type;
+    }
     const res = await fetch('/rest/catalog/uploadAsset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description: '', type: 'document', content, externalLink: '' })
+      body: JSON.stringify(body)
     });
     out.textContent = JSON.stringify(await res.json(), null, 2);
     loadQueue();
