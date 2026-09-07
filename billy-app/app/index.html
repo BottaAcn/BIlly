@@ -2,127 +2,197 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Billy — dev</title>
-<style>
-  body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
-  fieldset { margin-bottom: 24px; }
-  textarea, input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
-  textarea { height: 80px; }
-  pre { background: #f4f4f4; padding: 12px; white-space: pre-wrap; }
-  button { padding: 8px 16px; margin-right: 8px; }
-  li { margin-bottom: 6px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Billy — dev</h1>
-  <p>UI di test, non definitiva. Fase 2: ogni asset caricato/modificato passa da una coda di revisione prima di diventare visibile/citabile da Billy.</p>
 
-  <fieldset>
-    <legend>1. Carica asset</legend>
-    <input id="docTitle" placeholder="Titolo">
-    <textarea id="docContent" placeholder="Contenuto (testo incollato) — oppure scegli un file sotto"></textarea>
-    <input id="docFile" type="file" accept=".pdf,.docx,.txt">
-    <button onclick="uploadAsset()">Carica (va in revisione)</button>
-    <pre id="addResult"></pre>
-  </fieldset>
+<div class="app-shell">
 
-  <fieldset>
-    <legend>2. Coda di revisione</legend>
-    <button onclick="loadQueue()">Aggiorna coda</button>
-    <ul id="queueList"></ul>
-  </fieldset>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">Billy</div>
+        <div class="brand-tag">v0 — non definitivo</div>
+      </div>
+    </div>
 
-  <fieldset>
-    <legend>3. Chiedi a Billy</legend>
-    <input id="question" placeholder="Fai una domanda sui documenti approvati">
-    <button onclick="askBilly()">Chiedi</button>
-    <pre id="askResult"></pre>
-  </fieldset>
+    <nav class="nav">
+      <button class="nav-item active" data-view="chat">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Chat Billy
+      </button>
+      <button class="nav-item" data-view="catalog">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Catalogo
+      </button>
+      <button class="nav-item" data-view="upload">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>
+        Carica asset
+      </button>
+      <button class="nav-item" data-view="queue">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Coda di revisione
+        <span id="queue-count" class="badge badge-community" style="margin-left:auto; display:none"></span>
+      </button>
+    </nav>
 
-<script>
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]); // strip data:...;base64,
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+    <div class="sidebar-footer">
+      Ambiente di sviluppo · nessun login attivo<br>
+      Backend fisso — vedi doc/V1
+    </div>
+  </aside>
 
-async function uploadAsset() {
-  const title = document.getElementById('docTitle').value;
-  const content = document.getElementById('docContent').value;
-  const fileInput = document.getElementById('docFile');
-  const file = fileInput.files[0];
-  const out = document.getElementById('addResult');
-  out.textContent = 'Attendere...';
-  try {
-    const body = { title, description: '', type: 'document', content, externalLink: '' };
-    if (file) {
-      body.fileContent = await readFileAsBase64(file);
-      body.fileName = file.name;
-      body.fileMimeType = file.type;
-    }
-    const res = await fetch('/rest/catalog/uploadAsset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    out.textContent = JSON.stringify(await res.json(), null, 2);
-    loadQueue();
-  } catch (e) {
-    out.textContent = 'Errore: ' + e.message;
-  }
-}
+  <main class="main">
 
-async function loadQueue() {
-  const list = document.getElementById('queueList');
-  list.innerHTML = 'Attendere...';
-  try {
-    const res = await fetch('/rest/catalog/listReviewQueue');
-    const items = await res.json();
-    list.innerHTML = (items || []).map(i => `
-      <li>
-        [${i.kind}] <b>${i.title}</b> (${i.type || '-'})
-        — inviato da ${i.submittedBy || '-'}
-        <button onclick="approve('${i.revisionId}')">Approva</button>
-      </li>
-    `).join('') || '<li>(coda vuota)</li>';
-  } catch (e) {
-    list.innerHTML = 'Errore: ' + e.message;
-  }
-}
+    <!-- ============================================================ CHAT -->
+    <section id="view-chat" class="view active">
+      <div class="view-header">
+        <h1 class="view-title">Chiedi a Billy</h1>
+        <p class="view-subtitle">Risponde sulla base degli asset del catalogo, citando le fonti e il loro stato di certificazione.</p>
+      </div>
 
-async function approve(revisionId) {
-  await fetch('/rest/catalog/reviewRevision', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ revisionId, approve: true, validityMonths: 12, pointsPct: 100 })
-  });
-  loadQueue();
-}
+      <div id="chat-empty" class="chat-empty">
+        <div class="chat-orb"></div>
+        <div class="chat-orb orb-2"></div>
+        <div class="chat-empty-content">
+          <p class="chat-empty-title">Fai una domanda per iniziare</p>
+          <p class="chat-empty-sub">Es. "Quanti giorni di ferie ho a disposizione?" oppure "Come funziona la procedura di onboarding?"</p>
+        </div>
+      </div>
 
-async function askBilly() {
-  const question = document.getElementById('question').value;
-  const out = document.getElementById('askResult');
-  out.textContent = 'Attendere...';
-  try {
-    const res = await fetch('/rest/billy/askBilly', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question })
-    });
-    const data = await res.json();
-    const sourcesHtml = (data.sources || [])
-      .map(s => `<li><a href="${s.link}">${s.title}</a> — [${s.certificationLevel}] similarity ${s.similarity.toFixed(3)}</li>`)
-      .join('');
-    out.innerHTML = `<p>${data.answer ? data.answer.replace(/\n/g, '<br>') : ''}</p><ul>${sourcesHtml}</ul>`;
-  } catch (e) {
-    out.textContent = 'Errore: ' + e.message;
-  }
-}
+      <div id="chat-thread" class="chat-thread" style="display:none"></div>
 
-loadQueue();
-</script>
+      <div class="chat-inputbar">
+        <div class="chat-inputbar-inner">
+          <textarea id="chat-input" class="chat-input" rows="1" placeholder="Scrivi una domanda a Billy..."></textarea>
+          <button id="chat-send" class="chat-send" title="Invia">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= CATALOG -->
+    <section id="view-catalog" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Catalogo</h1>
+        <p class="view-subtitle">Asset pubblicati e già visibili a Billy.</p>
+      </div>
+      <div class="view-body">
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <input id="catalog-search" class="input" placeholder="Cerca per titolo o descrizione...">
+          </div>
+          <label class="toggle-deep">
+            <span class="switch">
+              <input type="checkbox" id="deep-search-toggle">
+              <span class="switch-track"></span>
+            </span>
+            Ricerca approfondita
+          </label>
+          <button class="btn btn-sm" id="catalog-refresh">Aggiorna</button>
+        </div>
+        <div id="catalog-grid" class="asset-grid"></div>
+      </div>
+    </section>
+
+    <!-- ========================================================== UPLOAD -->
+    <section id="view-upload" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Carica un nuovo asset</h1>
+        <p class="view-subtitle">Ogni contenuto passa da una coda di revisione prima di diventare visibile nel catalogo e citabile da Billy.</p>
+      </div>
+      <div class="view-body">
+        <form id="upload-form" class="form-card">
+          <div class="field">
+            <label>Titolo</label>
+            <input class="input" id="up-title" required placeholder="Es. Policy smart working">
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>Tipo</label>
+              <select class="select" id="up-type">
+                <option value="document">Documento</option>
+                <option value="skill">Skill</option>
+                <option value="tool">Tool</option>
+                <option value="application">Applicazione</option>
+                <option value="interface">Interfaccia</option>
+                <option value="other">Altro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Link esterno (opzionale)</label>
+              <input class="input" id="up-link" placeholder="https://...">
+            </div>
+          </div>
+          <div class="field">
+            <label>Descrizione</label>
+            <textarea class="textarea" id="up-description" style="min-height:70px" placeholder="Breve descrizione (opzionale)"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Contenuto</label>
+            <div class="tabs">
+              <button type="button" class="tab active" data-content-tab="text">Testo incollato</button>
+              <button type="button" class="tab" data-content-tab="file">File</button>
+            </div>
+            <div id="content-tab-text">
+              <textarea class="textarea" id="up-content" placeholder="Incolla qui il testo del documento..."></textarea>
+            </div>
+            <div id="content-tab-file" style="display:none">
+              <label class="file-drop" id="file-drop-label">
+                <span id="file-drop-text">Trascina un file qui o clicca per selezionarlo (PDF, DOCX, TXT)</span>
+                <input type="file" id="up-file" accept=".pdf,.docx,.txt" style="display:none">
+              </label>
+            </div>
+            <p class="field-hint">Fornisci testo incollato oppure un file, non entrambi.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="upload-submit">Carica (va in revisione)</button>
+          </div>
+          <div id="upload-alert"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- =========================================================== QUEUE -->
+    <section id="view-queue" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Coda di revisione</h1>
+        <p class="view-subtitle">Contenuti nuovi in attesa di prima approvazione, e asset scaduti in attesa di rinnovo.</p>
+      </div>
+      <div class="view-body">
+        <div id="queue-list" class="row-list"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title"></h3>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
