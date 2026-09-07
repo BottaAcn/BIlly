@@ -382,7 +382,7 @@ Domanda utente
 
 ## 8. MCP (fase avanzata)
 
-`@cap-js/mcp` espone `CatalogService` (e potenzialmente `BillyService`) come tool MCP, permettendo ad altri agenti (incluso Claude Code stesso, o altri assistenti aziendali) di interrogare il catalogo. **Esplicitamente posticipato** (HANDOFF §3): si implementa dopo che il catalogo e Billy sono stabili, perché espone via tool la stessa superficie API già costruita — è un moltiplicatore da aggiungere, non un prerequisito.
+`@cap-js/mcp` espone **sia** `CatalogService` (`searchAssets` full-text, `deepSearch` con RAG/similarity, e le altre action/function del catalogo) **sia** `BillyService` (`askBilly`) come tool MCP — decisione esplicita: tutto il catalogo, non solo un sottoinsieme, permettendo ad altri agenti (incluso Claude Code stesso, o altri assistenti aziendali) sia di interrogare il catalogo direttamente sia di fare RAG completo tramite Billy. **Esplicitamente posticipato** (HANDOFF §3): si implementa dopo che il catalogo e Billy sono stabili, perché espone via tool la stessa superficie API già costruita — è un moltiplicatore da aggiungere, non un prerequisito.
 
 ---
 

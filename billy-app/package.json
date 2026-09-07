@@ -8,6 +8,7 @@
   "dependencies": {
     "@cap-js/attachments": "^4.0.0",
     "@cap-js/hana": "^3",
+    "@cap-js/mcp": "^1.4.3",
     "@sap-ai-sdk/foundation-models": "^2.15.0",
     "@sap-ai-sdk/orchestration": "^2.15.0",
     "@sap/cds": "^10",
@@ -23,6 +24,10 @@
   "cds": {
     "server": {
       "body_parser": { "limit": "15mb" }
+    },
+    "mcp": {
+      "per_action_tool": true,
+      "prefix": true
     },
     "requires": {
       "db": {

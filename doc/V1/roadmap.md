@@ -114,7 +114,7 @@ Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approv
 
 ---
 
-## Fase 7 — MCP
+## Fase 7 — MCP — ✅ COMPLETATA (08/09/2026)
 
 **Cosa:** `@cap-js/mcp` su `CatalogService` (ed eventualmente `BillyService`) — architecture.md §8.
 

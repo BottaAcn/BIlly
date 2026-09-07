@@ -18,3 +18,10 @@ service BillyService @(path: 'billy', protocol: 'rest') {
     };
   };
 }
+
+// Fase 7 — espone BillyService come server MCP (@cap-js/mcp), un tool
+// dedicato per askBilly grazie a cds.mcp.per_action_tool (package.json).
+// Stessa nota di catalog-service.cds: @protocol già impostato inline nel
+// servizio ('rest'), quindi va sovrascritto con un array per aggiungere mcp.
+annotate BillyService with @protocol: ['rest', 'mcp'];
+annotate BillyService with @mcp.instructions: 'Usa askBilly per rispondere a domande in linguaggio naturale sulla documentazione della practice: fa RAG sugli asset certificati e restituisce risposta con le fonti citate (con relativo livello di certificazione).';

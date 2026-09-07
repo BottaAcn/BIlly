@@ -76,3 +76,14 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
 
   action expireCertifications() returns { expiredCount: Integer };
 }
+
+// Fase 7 — espone CatalogService come server MCP (@cap-js/mcp), tool per
+// tool grazie a cds.mcp.per_action_tool (package.json). Decisione esplicita:
+// tutto il servizio, non un sottoinsieme (architecture.md §8).
+// NOTA: il servizio dichiara già `protocol: 'rest'` inline nel suo header
+// (v0.0.1). @sap/cds usa SOLO quel valore quando è già presente, ignorando
+// del tutto un'annotazione @mcp separata (letto in
+// node_modules/@sap/cds/lib/srv/protocols/index.js, endpoints4()) — serve
+// sovrascrivere @protocol con un array esplicito per servire entrambi.
+annotate CatalogService with @protocol: ['rest', 'mcp'];
+annotate CatalogService with @mcp.instructions: 'Usa searchAssets per una ricerca full-text istantanea su titolo/descrizione degli asset pubblicati. Usa deepSearch per una ricerca semantica (RAG/similarity) quando la domanda non corrisponde a parole esatte nel catalogo. Le altre action gestiscono il ciclo di vita degli asset (upload, revisione, certificazione).';
