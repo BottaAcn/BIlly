@@ -1,13 +1,13 @@
 using { billy as db } from '../db/schema';
 
-// XSUAA preparata ma NON attiva in v0.0.1 (vedi FASE 5) — l'app resta accessibile a tutti.
-// In una fase futura, quando l'auth va attivata, la riga da scommentare è:
+// XSUAA preparata ma NON attiva (D15 — ultimissimo step). L'app resta
+// accessibile a tutti. Quando l'auth va attivata, la riga da scommentare è:
 // @(requires: ['authenticated-user'])
 service BillyService @(path: 'billy', protocol: 'rest') {
 
-  entity Document as projection on db.Document excluding { embedding };
+  entity Asset as projection on db.Asset;
 
-  action addDocument(title: String, content: String) returns Document;
+  action uploadAsset(title: String, content: String) returns Asset;
 
   action askBilly(question: String) returns {
     answer  : String;

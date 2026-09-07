@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Billy v0.0.1 — walking skeleton</title>
+<title>Billy — dev</title>
 <style>
   body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
   fieldset { margin-bottom: 24px; }
@@ -13,14 +13,14 @@
 </style>
 </head>
 <body>
-  <h1>Billy — v0.0.1 walking skeleton</h1>
-  <p>UI di test, non definitiva. Verifica il loop RAG: embedding → HANA Vector → COSINE_SIMILARITY → Claude.</p>
+  <h1>Billy — dev</h1>
+  <p>UI di test, non definitiva. Modello dati: Asset/Chunk (Fase 0 — 1 asset = 1 chunk, nessun chunking reale ancora).</p>
 
   <fieldset>
-    <legend>1. Aggiungi documento</legend>
+    <legend>1. Carica asset</legend>
     <input id="docTitle" placeholder="Titolo">
     <textarea id="docContent" placeholder="Contenuto"></textarea>
-    <button onclick="addDocument()">Aggiungi</button>
+    <button onclick="uploadAsset()">Aggiungi</button>
     <pre id="addResult"></pre>
   </fieldset>
 
@@ -32,13 +32,13 @@
   </fieldset>
 
 <script>
-async function addDocument() {
+async function uploadAsset() {
   const title = document.getElementById('docTitle').value;
   const content = document.getElementById('docContent').value;
   const out = document.getElementById('addResult');
   out.textContent = 'Attendere...';
   try {
-    const res = await fetch('/rest/billy/addDocument', {
+    const res = await fetch('/rest/billy/uploadAsset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, content })
