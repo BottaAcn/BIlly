@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Billy v0.0.1 — walking skeleton</title>
+<style>
+  body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
+  fieldset { margin-bottom: 24px; }
+  textarea, input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+  textarea { height: 80px; }
+  pre { background: #f4f4f4; padding: 12px; white-space: pre-wrap; }
+  button { padding: 8px 16px; }
+</style>
+</head>
+<body>
+  <h1>Billy — v0.0.1 walking skeleton</h1>
+  <p>UI di test, non definitiva. Verifica il loop RAG: embedding → HANA Vector → COSINE_SIMILARITY → Claude.</p>
+
+  <fieldset>
+    <legend>1. Aggiungi documento</legend>
+    <input id="docTitle" placeholder="Titolo">
+    <textarea id="docContent" placeholder="Contenuto"></textarea>
+    <button onclick="addDocument()">Aggiungi</button>
+    <pre id="addResult"></pre>
+  </fieldset>
+
+  <fieldset>
+    <legend>2. Chiedi a Billy</legend>
+    <input id="question" placeholder="Fai una domanda sui documenti aggiunti">
+    <button onclick="askBilly()">Chiedi</button>
+    <pre id="askResult"></pre>
+  </fieldset>
+
+<script>
+async function addDocument() {
+  const title = document.getElementById('docTitle').value;
+  const content = document.getElementById('docContent').value;
+  const out = document.getElementById('addResult');
+  out.textContent = 'Attendere...';
+  try {
+    const res = await fetch('/rest/billy/addDocument', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    });
+    out.textContent = JSON.stringify(await res.json(), null, 2);
+  } catch (e) {
+    out.textContent = 'Errore: ' + e.message;
+  }
+}
+
+async function askBilly() {
+  const question = document.getElementById('question').value;
+  const out = document.getElementById('askResult');
+  out.textContent = 'Attendere...';
+  try {
+    const res = await fetch('/rest/billy/askBilly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    out.textContent = JSON.stringify(await res.json(), null, 2);
+  } catch (e) {
+    out.textContent = 'Errore: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

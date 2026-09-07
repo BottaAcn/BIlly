@@ -1,0 +1,61 @@
+_schema-version: "3.3"
+ID: billy-app
+version: 1.0.0
+
+parameters:
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npx cds build --production
+        - node scripts/copy-app.js
+
+modules:
+  - name: billy-srv
+    type: nodejs
+    path: ./gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 256MB
+      disk-quota: 1024MB
+    build-parameters:
+      builder: npm
+      ignore: ["node_modules/"]
+    requires:
+      - name: billy-hdi-container
+
+  - name: billy-db-deployer
+    type: hdb
+    path: ./gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 256MB
+      disk-quota: 1024MB
+    build-parameters:
+      ignore: ["node_modules/"]
+    requires:
+      - name: billy-hdi-container
+
+resources:
+  # ------------------------------------------------------------
+  # XSUAA — struttura pronta ma NON referenziata da nessun modulo.
+  # Per attivarla in futuro: (1) scommentare questa risorsa,
+  # (2) aggiungere "requires: [{name: billy-uaa}]" al modulo billy-srv,
+  # (3) scommentare @(requires:...) in srv/billy-service.cds.
+  # - name: billy-uaa
+  #   type: org.cloudfoundry.managed-service
+  #   parameters:
+  #     service: xsuaa
+  #     service-plan: application
+  #     path: ./xs-security.json
+  #     config:
+  #       xsappname: billy-uaa
+  # ------------------------------------------------------------
+  - name: billy-hdi-container
+    type: com.sap.xs.hdi-container
+    parameters:
+      service-name: billy-hdi-container
+    properties:
+      com-container-name: "${service-name}"

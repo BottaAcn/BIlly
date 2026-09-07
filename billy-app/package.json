@@ -1,0 +1,34 @@
+{
+  "name": "billy-app",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@cap-js/hana": "^3",
+    "@sap-ai-sdk/foundation-models": "^2.15.0",
+    "@sap-ai-sdk/orchestration": "^2.15.0",
+    "@sap/cds": "^10"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^3"
+  },
+  "scripts": {
+    "start": "cds-serve"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "[production]": {
+          "kind": "hana"
+        }
+      },
+      "auth": {
+        "kind": "dummy"
+      }
+    }
+  },
+  "private": true
+}

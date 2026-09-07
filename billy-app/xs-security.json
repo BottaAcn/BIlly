@@ -1,0 +1,28 @@
+{
+  "xsappname": "billy-uaa",
+  "tenant-mode": "dedicated",
+  "scopes": [
+    { "name": "$XSAPPNAME.Member", "description": "Member" },
+    { "name": "$XSAPPNAME.Admin", "description": "Administrator" },
+    { "name": "uaa.user", "description": "UAA" }
+  ],
+  "attributes": [],
+  "role-templates": [
+    { "name": "Member", "description": "Member", "scope-references": ["$XSAPPNAME.Member"], "attribute-references": [] },
+    { "name": "Admin", "description": "Administrator", "scope-references": ["$XSAPPNAME.Admin"], "attribute-references": [] },
+    { "name": "Token_Exchange", "description": "UAA Token Exchange", "scope-references": ["$uaa.user"], "attribute-references": [] }
+  ],
+  "role-collections": [
+    { "name": "Billy Member", "description": "Member Access", "role-template-references": ["$XSAPPNAME.Member", "$XSAPPNAME.Token_Exchange"] },
+    { "name": "Billy Administrator", "description": "Administrator Access", "role-template-references": ["$XSAPPNAME.Admin", "$XSAPPNAME.Token_Exchange"] }
+  ],
+  "oauth2-configuration": {
+    "token-validity": 900,
+    "redirect-uris": [
+      "http*://*.cfapps.*.hana.ondemand.com/**",
+      "http://*.localhost:4004/**",
+      "http://localhost:4004/**"
+    ],
+    "credential-types": ["binding-secret", "x509"]
+  }
+}
