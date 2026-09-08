@@ -417,7 +417,7 @@ Estende l'MTA minimo di v0.0.1 (2 moduli: `billy-srv` + `billy-db-deployer`) agg
 
 ## 11. Aspetti non funzionali
 
-- **Logging**: SAP Cloud Logging (non Application Logging, in deprecazione — preflight §7.5)
+- **Logging**: SAP Cloud Logging (non Application Logging, in deprecazione — preflight §7.5). **Aggiornamento (08/09/2026, Fase 10)**: `cloud-logging` non è entitled in questo subaccount — usato `application-logs` (lite) come soluzione ponte, migrazione futura quando l'entitlement corretto sarà disponibile (roadmap.md Fase 10).
 - **Costo**: monitorare consumo token AI Core (dominato dall'input, da cui D8). Object Store e Malware Scanning Service **non sono nello scope attuale** (§6, decisione esplicita di rimandare/eventualmente saltare lo scanning) — nessun costo aggiuntivo da questi due per ora
 - **CI/CD**: non nello scope di questo documento, da affrontare quando il ritmo di rilascio lo giustifica
 

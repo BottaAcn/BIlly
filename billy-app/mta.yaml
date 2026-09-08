@@ -25,6 +25,7 @@ modules:
       ignore: ["node_modules/"]
     requires:
       - name: billy-hdi-container
+      - name: billy-application-logs
 
   - name: billy-db-deployer
     type: hdb
@@ -59,3 +60,15 @@ resources:
       service-name: billy-hdi-container
     properties:
       com-container-name: "${service-name}"
+
+  # Fase 10 — logging persistente/ricercabile. Il servizio raccomandato in
+  # architecture.md §11 (cloud-logging) non è entitled in questo subaccount
+  # (verificato con `cf marketplace`) — application-logs (lite) è il ponte
+  # disponibile subito, stesso pattern già usato per lo scanning malware in
+  # Fase 5. @sap/cds rileva da solo questo binding (lib/log/format/aspects/
+  # als.js), nessuna modifica applicativa necessaria.
+  - name: billy-application-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite

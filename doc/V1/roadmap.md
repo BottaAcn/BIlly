@@ -146,6 +146,20 @@ Non prioritaria ora, da affrontare quando il ritmo di rilascio lo giustifica (gi
 
 ---
 
+## Fase 10 — Logging persistente (SAP Cloud Logging / Application Logs) — ✅ COMPLETATA (08/09/2026)
+
+**Cosa:** Bindare `billy-srv` a un servizio di log persistente/ricercabile — architecture.md §11 lo menzionava come requisito ma non aveva mai avuto una fase propria (gap trovato l'08/09/2026 rileggendo l'architettura per intero). `@sap/cds` rileva da solo il binding (nessuna modifica al codice applicativo, verificato nel sorgente `lib/log/format/aspects/als.js`/`cls.js`).
+
+**Perché qui:** nessuna dipendenza da altre fasi, puramente infrastrutturale. Finora ci si è appoggiati solo a `cf logs` grezzo (usabile per debug interattivo, non per un'analisi storica/su volume reale).
+
+**Nota (08/09/2026)**: il servizio raccomandato in architecture.md §11 (`cloud-logging`) **non è entitled in questo subaccount** (verificato con `cf marketplace`) — solo il vecchio `application-logs` (piano `lite`) lo è. **Decisione esplicita dell'utente**: usare `application-logs` ora (disponibile subito), documentando chiaramente che è il servizio in via di deprecazione — migrazione a `cloud-logging` rimandata a quando/se l'entitlement corretto viene richiesto (stesso pattern già usato per lo scanning malware in Fase 5).
+
+**Effort:** S — solo un resource in `mta.yaml` + binding, zero codice.
+**Valore percepito:** Basso a breve termine (l'app funziona già senza), ma prerequisito per qualunque debug/audit su volume reale prima di un rollout a ~200 persone.
+**Dipendenze:** nessuna.
+
+---
+
 ## Riepilogo visivo dell'ordine
 
 ```
@@ -159,6 +173,7 @@ Fase 6  → MTA completo (approuter/html5)                [va con Fase 4]
 Fase 7  → MCP                                           [moltiplicatore, non prerequisito]
 Fase 8  → XSUAA                                         [ULTIMA, per richiesta esplicita]
 Fase 9  → CI/CD                                         [quando serve]
+Fase 10 → Logging persistente (Application Logs)        [nessuna dipendenza, gap colmato]
 ```
 
 **Cosa fare in parallelo fin da subito, indipendentemente dalla fase tecnica in corso:**
