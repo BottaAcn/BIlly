@@ -6,25 +6,47 @@ import '../components/billy-badge.js';
 const catalogGrid = document.getElementById('catalog-grid');
 const catalogSearch = document.getElementById('catalog-search');
 const deepToggle = document.getElementById('deep-search-toggle');
+const catalogSort = document.getElementById('catalog-sort');
+const catalogFilters = document.getElementById('catalog-filters');
+const catalogCount = document.getElementById('catalog-count');
 const modal = document.getElementById('modal');
 const toasts = document.getElementById('toast-container');
 
 let catalogCache = [];
+let currentList = [];
+let certFilter = 'all';
 
 function skeletonCards() {
   return Array.from({ length: 6 }).map(() => `<div class="card skeleton" style="height:110px"></div>`).join('');
 }
 
-function renderCatalog(assets) {
+// Filtro/ordinamento applicati lato client sulla lista già caricata: né il
+// cambio filtro né il cambio ordinamento fanno una nuova chiamata API.
+function applyFiltersAndSort(list) {
+  let out = certFilter === 'all' ? list : list.filter((a) => a.certificationLevel === certFilter);
+  out = [...out];
+  if (catalogSort.value === 'alpha') {
+    out.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  } else if (!out.some((a) => a._similarity != null)) {
+    // "Più recenti" di default; in ricerca approfondita si rispetta invece
+    // l'ordine di rilevanza già restituito da deepSearch.
+    out.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }
+  return out;
+}
+
+function renderFiltered() {
+  const filtered = applyFiltersAndSort(currentList);
+  catalogCount.textContent = filtered.length === 1 ? '1 asset trovato' : `${filtered.length} asset trovati`;
   catalogGrid.innerHTML = '';
-  if (!assets.length) {
+  if (!filtered.length) {
     catalogGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <p class="empty-state-title">Nessun asset trovato</p>
-      <p>Prova a modificare la ricerca, oppure carica un nuovo asset.</p>
+      <p>Prova a modificare la ricerca o i filtri, oppure carica un nuovo asset.</p>
     </div>`;
     return;
   }
-  assets.forEach((a) => {
+  filtered.forEach((a) => {
     const card = document.createElement('billy-asset-card');
     card.asset = a;
     card.addEventListener('open', (e) => openAssetDetail(e.detail.assetId));
@@ -32,11 +54,16 @@ function renderCatalog(assets) {
   });
 }
 
+function setBaseList(list) {
+  currentList = list;
+  renderFiltered();
+}
+
 export async function loadCatalog() {
   catalogGrid.innerHTML = skeletonCards();
   try {
     catalogCache = await api.listAssets();
-    renderCatalog(catalogCache);
+    setBaseList(catalogCache);
   } catch (e) {
     catalogGrid.innerHTML = `<div class="empty-state">Errore nel caricamento: ${escapeHtml(e.message)}</div>`;
   }
@@ -44,7 +71,7 @@ export async function loadCatalog() {
 
 async function runCatalogSearch() {
   const query = catalogSearch.value.trim();
-  if (!query) return renderCatalog(catalogCache);
+  if (!query) return setBaseList(catalogCache);
 
   catalogGrid.innerHTML = skeletonCards();
   try {
@@ -53,9 +80,9 @@ async function runCatalogSearch() {
       // asset: si arricchisce incrociando con la cache già caricata.
       const results = await api.deepSearch(query);
       const byId = Object.fromEntries(catalogCache.map((a) => [a.ID, a]));
-      renderCatalog(results.map((r) => ({ ...(byId[r.assetId] || {}), ID: r.assetId, title: r.title, _similarity: r.similarity })));
+      setBaseList(results.map((r) => ({ ...(byId[r.assetId] || {}), ID: r.assetId, title: r.title, _similarity: r.similarity })));
     } else {
-      renderCatalog(await api.searchAssets(query));
+      setBaseList(await api.searchAssets(query));
     }
   } catch (e) {
     catalogGrid.innerHTML = `<div class="empty-state">Errore nella ricerca: ${escapeHtml(e.message)}</div>`;
@@ -113,6 +140,7 @@ function deleteAssetFlow(assetId, title) {
   modal.open({
     title: 'Eliminare questo asset?',
     bodyHtml: `<p style="color:var(--text-secondary); font-size:13.5px; margin:0;">"${escapeHtml(title)}" verrà eliminato in modo definitivo, insieme ai suoi allegati e alla cronologia. L'azione non è reversibile.</p>`,
+    variant: 'danger',
     footerButtons: [
       { label: 'Annulla', className: 'btn-ghost', onClick: () => modal.close() },
       { label: 'Conferma', className: 'btn-danger', onClick: async () => {
@@ -168,4 +196,12 @@ export function initCatalogView() {
     searchDebounce = setTimeout(runCatalogSearch, 350);
   });
   deepToggle.addEventListener('change', runCatalogSearch);
+  catalogSort.addEventListener('change', renderFiltered);
+  catalogFilters.querySelectorAll('[data-filter-cert]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      certFilter = chip.dataset.filterCert;
+      catalogFilters.querySelectorAll('[data-filter-cert]').forEach((c) => c.classList.toggle('active', c === chip));
+      renderFiltered();
+    });
+  });
 }

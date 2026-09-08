@@ -22,7 +22,7 @@ class BillyModal extends HTMLElement {
     this.addEventListener('click', (e) => { if (e.target === this) this.close(); });
   }
 
-  open({ title = '', bodyHtml = '', footerButtons = [] }) {
+  open({ title = '', bodyHtml = '', footerButtons = [], variant = null }) {
     this._titleEl.textContent = title;
     this._bodyEl.innerHTML = bodyHtml;
     this._footerEl.innerHTML = '';
@@ -34,6 +34,10 @@ class BillyModal extends HTMLElement {
       b.onclick = btn.onClick;
       this._footerEl.appendChild(b);
     });
+    // variant: 'danger' distingue visivamente le conferme distruttive
+    // (elimina, rifiuta) dal resto (dettaglio, anteprima) pur riusando lo
+    // stesso componente singleton.
+    this.classList.toggle('modal--danger', variant === 'danger');
     this.classList.add('open');
   }
 

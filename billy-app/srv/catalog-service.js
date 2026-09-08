@@ -82,6 +82,7 @@ module.exports = class CatalogService extends cds.ApplicationService {
     this.on('uploadAsset', this.onUploadAsset);
     this.on('editAsset', this.onEditAsset);
     this.on('listReviewQueue', this.onListReviewQueue);
+    this.on('getRevisionDetail', this.onGetRevisionDetail);
     this.on('reviewRevision', this.onReviewRevision);
     this.on('setCertificationLevel', this.onSetCertificationLevel);
     this.on('deleteAsset', this.onDeleteAsset);
@@ -208,6 +209,35 @@ module.exports = class CatalogService extends cds.ApplicationService {
         title: a.TITLE, type: a.TYPE, submittedBy: null, submittedAt: null
       }))
     ];
+  };
+
+  // Sola lettura, nessuna scrittura: usata dalla coda di revisione per
+  // mostrare cosa c'è dietro un titolo prima di approvare/rifiutare.
+  onGetRevisionDetail = async (req) => {
+    const { revisionId } = req.data;
+    const revision = await SELECT.one.from('billy.AssetRevision').where({ ID: revisionId });
+    if (!revision) return req.error(404, `Revisione ${revisionId} non trovata`);
+
+    const submitter = revision.submittedBy_ID
+      ? await SELECT.one.from('billy.Player').where({ ID: revision.submittedBy_ID }).columns('displayName')
+      : null;
+
+    const attachments = await SELECT.from(this.entities['Asset.attachments'])
+      .where({ up__ID: revision.asset_ID })
+      .columns('ID', 'filename', 'mimeType');
+
+    return {
+      revisionId: revision.ID,
+      assetId: revision.asset_ID,
+      title: revision.title,
+      description: revision.description,
+      content: revision.content,
+      type: revision.type,
+      externalLink: revision.externalLink,
+      submittedBy: submitter ? submitter.displayName : null,
+      submittedAt: revision.createdAt,
+      attachments
+    };
   };
 
   onReviewRevision = async (req) => {

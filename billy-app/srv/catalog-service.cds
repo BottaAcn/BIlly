@@ -43,6 +43,29 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
     submittedAt : Timestamp;
   };
 
+  // Anteprima di sola lettura per la coda di revisione: un certificatore deve
+  // poter vedere cosa sta approvando/rifiutando prima di decidere, non solo
+  // il titolo. Bypassa di proposito il filtro published=true dell'entity
+  // Asset qui sopra (il contenuto vive su AssetRevision, gli allegati su
+  // Asset.attachments — letti entrambi indipendentemente dallo stato di
+  // pubblicazione, stesso approccio di onDownloadAttachment/onDeleteAsset).
+  function getRevisionDetail(revisionId: UUID) returns {
+    revisionId   : UUID;
+    assetId      : UUID;
+    title        : String;
+    description  : String;
+    content      : LargeString;
+    type         : String;
+    externalLink : String;
+    submittedBy  : String;
+    submittedAt  : Timestamp;
+    attachments  : array of {
+      ID       : UUID;
+      filename : String;
+      mimeType : String;
+    };
+  };
+
   action reviewRevision(
     revisionId     : UUID,
     approve        : Boolean,

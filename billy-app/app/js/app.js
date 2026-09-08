@@ -20,6 +20,7 @@ function showView(name) {
   });
   if (name === 'catalog') loadCatalog();
   if (name === 'queue') loadQueue();
+  closeSidebar();
 }
 
 document.querySelectorAll('.nav-item[data-view]').forEach((btn) => {
@@ -33,6 +34,33 @@ document.addEventListener('open-asset', (e) => {
   showView('catalog');
   openAssetDetail(e.detail.assetId);
 });
+
+// Stesso principio di 'open-asset': un'azione dentro una vista (es. il
+// pulsante "Vai alla coda" dopo un upload riuscito) non deve importare
+// showView() da app.js, disaccoppia le viste tra loro via un evento.
+document.addEventListener('navigate-view', (e) => showView(e.detail.view));
+
+// Sidebar responsive (drawer sotto ~900px, vedi main.css). Sopra quella
+// soglia il pulsante hamburger resta nascosto via CSS e questo codice non
+// ha alcun effetto visibile.
+const sidebar = document.querySelector('.sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarBackdrop.classList.remove('open');
+  sidebarToggle.setAttribute('aria-expanded', 'false');
+}
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarBackdrop.classList.add('open');
+  sidebarToggle.setAttribute('aria-expanded', 'true');
+}
+sidebarToggle.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+sidebarBackdrop.addEventListener('click', closeSidebar);
 
 initChatView();
 initCatalogView();

@@ -2,7 +2,7 @@ import { escapeHtml, fmtDate, TYPE_LABELS } from '../utils.js';
 
 // <billy-queue-row> — riga nella coda di revisione.
 // Proprietà: .item = { kind: 'revision'|'renewal', revisionId, assetId, title, type, submittedBy, submittedAt }
-// Eventi emessi: 'approve' e 'reject' (bubbles), detail: { revisionId }
+// Eventi emessi: 'preview', 'approve' e 'reject' (bubbles), detail: { revisionId }
 // "Rifiuta" non compare per kind==='renewal' (stessa regola del backend: un
 // rinnovo non si rifiuta, si deprecare esplicitamente altrove).
 class BillyQueueRow extends HTMLElement {
@@ -26,10 +26,14 @@ class BillyQueueRow extends HTMLElement {
         <p class="row-meta">${item.submittedBy ? `Inviato da ${escapeHtml(item.submittedBy)} · ${fmtDate(item.submittedAt)}` : 'Certificazione scaduta, in attesa di rinnovo'}</p>
       </div>
       <div class="row-actions">
+        <button class="btn btn-sm btn-ghost" data-action="preview">Anteprima</button>
         <button class="btn btn-sm btn-primary" data-action="approve">Approva</button>
         ${item.kind === 'revision' ? `<button class="btn btn-sm btn-danger" data-action="reject">Rifiuta</button>` : ''}
       </div>
     `;
+    this.querySelector('[data-action="preview"]').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('preview', { bubbles: true, detail: { revisionId: item.revisionId } }));
+    });
     this.querySelector('[data-action="approve"]').addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('approve', { bubbles: true, detail: { revisionId: item.revisionId } }));
     });

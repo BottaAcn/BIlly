@@ -30,6 +30,7 @@ export const api = {
   editAsset: (body) => request('/rest/catalog/editAsset', { method: 'POST', body }),
 
   listReviewQueue: () => request('/rest/catalog/listReviewQueue'),
+  getRevisionDetail: (revisionId) => request(`/rest/catalog/getRevisionDetail?revisionId=${revisionId}`),
   reviewRevision: (body) => request('/rest/catalog/reviewRevision', { method: 'POST', body }),
   setCertificationLevel: (body) => request('/rest/catalog/setCertificationLevel', { method: 'POST', body }),
   deleteAsset: (assetId) => request('/rest/catalog/deleteAsset', { method: 'POST', body: { assetId } }),

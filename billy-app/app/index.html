@@ -14,6 +14,11 @@
 
 <div class="app-shell">
 
+  <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Apri menu" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark"></div>
@@ -53,9 +58,12 @@
 
     <!-- ============================================================ CHAT -->
     <section id="view-chat" class="view active">
-      <div class="view-header">
-        <h1 class="view-title">Chiedi a Billy</h1>
-        <p class="view-subtitle">Risponde sulla base degli asset del catalogo, citando le fonti e il loro stato di certificazione.</p>
+      <div class="view-header view-header-row">
+        <div>
+          <h1 class="view-title">Chiedi a Billy</h1>
+          <p class="view-subtitle">Risponde sulla base degli asset del catalogo, citando le fonti e il loro stato di certificazione.</p>
+        </div>
+        <button id="chat-reset" class="btn btn-sm btn-ghost" type="button" title="Cancella la conversazione corrente">Nuova conversazione</button>
       </div>
 
       <div id="chat-empty" class="chat-empty">
@@ -64,6 +72,11 @@
         <div class="chat-empty-content">
           <p class="chat-empty-title">Fai una domanda per iniziare</p>
           <p class="chat-empty-sub">Es. "Quanti giorni di ferie ho a disposizione?" oppure "Come funziona la procedura di onboarding?"</p>
+          <div id="suggested-questions" class="suggested-questions">
+            <button class="suggested-chip" type="button">Come funziona la procedura di onboarding?</button>
+            <button class="suggested-chip" type="button">Quali policy sono certificate?</button>
+            <button class="suggested-chip" type="button">Come funziona lo smart working?</button>
+          </div>
         </div>
       </div>
 
@@ -100,8 +113,21 @@
             </span>
             Ricerca approfondita
           </label>
+          <select class="select" id="catalog-sort" style="width:auto">
+            <option value="recent">Più recenti</option>
+            <option value="alpha">Alfabetico</option>
+          </select>
           <button class="btn btn-sm" id="catalog-refresh">Aggiorna</button>
         </div>
+        <div class="filter-bar" id="catalog-filters">
+          <span class="filter-bar-label">Certificazione:</span>
+          <button class="filter-chip active" data-filter-cert="all" type="button">Tutte</button>
+          <button class="filter-chip" data-filter-cert="certified" type="button">Certificato</button>
+          <button class="filter-chip" data-filter-cert="certifiedOutdated" type="button">Scaduto</button>
+          <button class="filter-chip" data-filter-cert="community" type="button">Community</button>
+          <button class="filter-chip" data-filter-cert="deprecated" type="button">Ritirato</button>
+        </div>
+        <p id="catalog-count" class="catalog-count"></p>
         <div id="catalog-grid" class="asset-grid"></div>
       </div>
     </section>
