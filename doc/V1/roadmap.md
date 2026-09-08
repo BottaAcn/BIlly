@@ -102,7 +102,9 @@ Verificata end-to-end su Cloud Foundry reale: flusso upload→revisione→approv
 
 ---
 
-## Fase 6 — Infrastruttura di produzione (MTA completo)
+## Fase 6 — Infrastruttura di produzione (MTA completo) — 🟡 PARZIALMENTE COMPLETATA (08/09/2026)
+
+**Aggiornamento (08/09/2026)**: approuter + destination + HTML5 App Repo fatti e verificati su CF, con `authenticationMethod: "none"` (decisione esplicita dell'utente: costruire l'infrastruttura ora, attivare l'auth reale solo quando arriva XSUAA in Fase 8, senza dover ricostruire nulla). **Manca ancora**: `billy-uaa` (XSUAA) e il flip da `authenticationMethod: "none"` a un'auth reale — quella parte resta esplicitamente in Fase 8. Dettaglio completo: `fase6-checklist.md`.
 
 **Cosa:** Aggiungere approuter, modulo UI (html5), html5-deployer, html5-repo-host/runtime, destination — architecture.md §10.
 

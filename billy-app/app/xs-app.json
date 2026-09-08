@@ -1,0 +1,22 @@
+{
+  "welcomeFile": "/index.html",
+  "routes": [
+    {
+      "source": "^/rest/(.*)$",
+      "target": "/rest/$1",
+      "destination": "billy-srv-api",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/mcp/(.*)$",
+      "target": "/mcp/$1",
+      "destination": "billy-srv-api",
+      "csrfProtection": false
+    },
+    {
+      "source": "^(.*)$",
+      "target": "$1",
+      "service": "html5-apps-repo-rt"
+    }
+  ]
+}

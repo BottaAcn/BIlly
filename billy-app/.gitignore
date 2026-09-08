@@ -13,6 +13,7 @@ default-*.json
 mta_archives/
 *_mta_build_tmp
 *.mtar
+html5-content/
 
 # Other
 .DS_Store

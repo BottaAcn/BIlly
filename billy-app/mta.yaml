@@ -11,6 +11,7 @@ build-parameters:
       commands:
         - npx cds build --production
         - node scripts/copy-app.js
+        - node scripts/zip-html5-content.js
 
 modules:
   - name: billy-srv
@@ -26,6 +27,49 @@ modules:
     requires:
       - name: billy-hdi-container
       - name: billy-application-logs
+    # Fase 6 — pubblica il proprio URL per la risorsa billy-destination
+    # (sotto). Nessuna nuova dipendenza né comportamento diverso: billy-srv
+    # resta raggiungibile direttamente come prima, in parallelo all'approuter.
+    provides:
+      - name: billy-srv-props
+        properties:
+          srv-url: ${default-url}
+
+  # Fase 6 — approuter: punto d'ingresso unico per il frontend, servito da
+  # HTML5 App Repo invece che direttamente da CAP. authenticationMethod:
+  # "none" nel suo xs-app.json — nessun login reale finché XSUAA (Fase 8)
+  # non verrà attivata sulla stessa infrastruttura.
+  - name: billy-approuter
+    type: approuter.nodejs
+    path: ./router
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 128MB
+      disk-quota: 256MB
+    build-parameters:
+      builder: npm
+      ignore: ["node_modules/"]
+    requires:
+      - name: billy-destination
+      - name: billy-html5-repo-runtime
+
+  # Fase 6 — carica il contenuto del frontend (app/index.html, js/,
+  # styles/) dentro billy-html5-repo-host. html5-apps-repo richiede uno zip
+  # esterno che contenga uno zip interno per app (verificato con un deploy
+  # reale — il tentativo con un modulo `type: html5` + build-parameters.
+  # requires di mbt produceva file grezzi, non annidati, e veniva rifiutato:
+  # "must include a zip file that contains a zip file for each HTML5
+  # application", vedi fase6-checklist.md §1.6). Lo zip interno
+  # (billy-ui.zip) è prodotto da scripts/zip-html5-content.js in before-all;
+  # mbt impacchetta poi normalmente questa cartella come proprio pacchetto,
+  # ottenendo lo zip esterno che lo contiene — struttura corretta.
+  - name: billy-html5-app-deployer
+    type: com.sap.application.content
+    path: ./html5-content
+    requires:
+      - name: billy-html5-repo-host
+        parameters:
+          content-target: true
 
   - name: billy-db-deployer
     type: hdb
@@ -72,3 +116,44 @@ resources:
     parameters:
       service: application-logs
       service-plan: lite
+
+  # Fase 6 — destination consultata dall'app (app/xs-app.json) per
+  # raggiungere billy-srv tramite l'approuter, invece di un URL scritto a
+  # mano. NoAuthentication coerente con authenticationMethod: none (Fase 6,
+  # nessuna auth reale finché XSUAA non si attiva in Fase 8).
+  - name: billy-destination
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: billy-srv-props
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        version: 1.0.0
+        init_data:
+          instance:
+            existing_destinations_policy: update
+            destinations:
+              - Name: billy-srv-api
+                Description: Billy backend (REST + MCP)
+                URL: ~{billy-srv-props/srv-url}
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: NoAuthentication
+                HTML5.DynamicDestination: true
+                HTML5.Timeout: 300000
+
+  # Fase 6 — dove billy-html5-app-deployer carica il contenuto di billy-ui.
+  - name: billy-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+
+  # Fase 6 — da dove l'approuter serve il contenuto di billy-ui a runtime.
+  - name: billy-html5-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
