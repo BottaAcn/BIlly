@@ -380,9 +380,11 @@ Domanda utente
 
 ---
 
-## 8. MCP (fase avanzata)
+## 8. MCP (implementato in Fase 7)
 
-`@cap-js/mcp` espone **sia** `CatalogService` (`searchAssets` full-text, `deepSearch` con RAG/similarity, e le altre action/function del catalogo) **sia** `BillyService` (`askBilly`) come tool MCP — decisione esplicita: tutto il catalogo, non solo un sottoinsieme, permettendo ad altri agenti (incluso Claude Code stesso, o altri assistenti aziendali) sia di interrogare il catalogo direttamente sia di fare RAG completo tramite Billy. **Esplicitamente posticipato** (HANDOFF §3): si implementa dopo che il catalogo e Billy sono stabili, perché espone via tool la stessa superficie API già costruita — è un moltiplicatore da aggiungere, non un prerequisito.
+`@cap-js/mcp` espone **sia** `CatalogService` (`searchAssets` full-text, `deepSearch` con RAG/similarity, e le altre action/function del catalogo) **sia** `BillyService` (`askBilly`) come tool MCP — decisione esplicita: tutto il catalogo, non solo un sottoinsieme, permettendo ad altri agenti (incluso Claude Code stesso, o altri assistenti aziendali) sia di interrogare il catalogo direttamente sia di fare RAG completo tramite Billy. Fatto dopo che catalogo e Billy erano stabili (HANDOFF §3), perché espone via tool la stessa superficie API già costruita — un moltiplicatore, non un prerequisito. Dettagli implementativi in [fase7-checklist.md](fase7-checklist.md).
+
+Su un tema imparentato ma distinto — usare il **Document Grounding** managed di SAP AI Core invece della vostra pipeline RAG a mano — vedi [document-grounding-decision.md](document-grounding-decision.md): resta valido solo come fonte aggiuntiva su `help.sap.com`, non come sostituto per i contenuti interni del catalogo.
 
 ---
 

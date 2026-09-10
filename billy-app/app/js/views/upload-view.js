@@ -6,7 +6,7 @@ import { refreshQueueCount } from './queue-view.js';
 // validare qui evita un giro di rete inutile per un file che il server
 // rifiuterebbe comunque.
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.pptx', '.txt'];
 
 function isAllowedFile(file) {
   const name = file.name.toLowerCase();
@@ -31,7 +31,7 @@ export function initUploadView() {
   function applySelectedFile(file) {
     if (!file) return;
     if (!isAllowedFile(file)) {
-      alertBox.innerHTML = `<div class="alert alert-error">Formato non supportato: usa PDF, DOCX o TXT.</div>`;
+      alertBox.innerHTML = `<div class="alert alert-error">Formato non supportato: usa PDF, DOCX, PPTX o TXT.</div>`;
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -82,7 +82,7 @@ export function initUploadView() {
 
     if (!title) { alertBox.innerHTML = `<div class="alert alert-error">Il titolo è obbligatorio.</div>`; return; }
     if (!content && !file) { alertBox.innerHTML = `<div class="alert alert-error">Fornisci un testo oppure un file.</div>`; return; }
-    if (file && !isAllowedFile(file)) { alertBox.innerHTML = `<div class="alert alert-error">Formato non supportato: usa PDF, DOCX o TXT.</div>`; return; }
+    if (file && !isAllowedFile(file)) { alertBox.innerHTML = `<div class="alert alert-error">Formato non supportato: usa PDF, DOCX, PPTX o TXT.</div>`; return; }
     if (file && file.size > MAX_FILE_SIZE) { alertBox.innerHTML = `<div class="alert alert-error">File troppo grande (max ${MAX_FILE_SIZE / 1024 / 1024}MB).</div>`; return; }
 
     submitBtn.disabled = true;
@@ -102,7 +102,7 @@ export function initUploadView() {
         document.dispatchEvent(new CustomEvent('navigate-view', { detail: { view: 'queue' } }));
       });
       e.target.reset();
-      document.getElementById('file-drop-text').textContent = 'Trascina un file qui o clicca per selezionarlo (PDF, DOCX, TXT)';
+      document.getElementById('file-drop-text').textContent = 'Trascina un file qui o clicca per selezionarlo (PDF, DOCX, PPTX, TXT)';
       fileDropLabel.classList.remove('has-file');
       refreshQueueCount();
     } catch (err) {

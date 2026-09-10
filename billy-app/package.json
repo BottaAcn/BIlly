@@ -13,6 +13,7 @@
     "@sap-ai-sdk/orchestration": "^2.15.0",
     "@sap/cds": "^10",
     "mammoth": "^1.12.2",
+    "officeparser": "^7.8.0",
     "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
@@ -24,7 +25,9 @@
   },
   "cds": {
     "server": {
-      "body_parser": { "limit": "15mb" }
+      "body_parser": {
+        "limit": "15mb"
+      }
     },
     "mcp": {
       "per_action_tool": true,
@@ -43,11 +46,16 @@
       "attachments": {
         "kind": "db",
         "scan": false,
-        "[production]": { "kind": "db", "scan": false }
+        "[production]": {
+          "kind": "db",
+          "scan": false
+        }
       },
       "malwareScanner": {
         "kind": "malwareScanner-mocked",
-        "[production]": { "kind": "malwareScanner-mocked" }
+        "[production]": {
+          "kind": "malwareScanner-mocked"
+        }
       }
     }
   },
