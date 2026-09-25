@@ -97,17 +97,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 4px 10px 22px;
 }
 
-.brand-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), #4f3ee0);
-  flex: none;
+/* Logo neon fornito come PNG/SVG con sfondo trasparente. Se il file manca
+   app.js scopre il fallback testuale (.brand-name), così la sidebar resta
+   leggibile anche senza asset grafici. */
+.brand-logo {
+  width: 116px;
+  height: auto;
+  display: block;
+  margin: 0 0 4px -2px;
 }
 
 .brand-name {
@@ -326,6 +328,134 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 600;
+}
+
+/* --------------------------------------------------------------- Landing */
+
+/* La hero occupa tutta l'area di contenuto (la shell è alta 100vh e .main
+   la riempie), non la larghezza limitata da --content-max: il personaggio
+   deve poter arrivare a filo del bordo inferiore come nel mockup. */
+.landing {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: end;
+  overflow: hidden;
+}
+
+/* Alone dietro il personaggio: stacca la figura dal fondo quasi nero senza
+   dover inserire un bordo o un box attorno all'immagine. */
+.landing-glow {
+  position: absolute;
+  right: 4%;
+  bottom: -14%;
+  width: 640px;
+  height: 640px;
+  max-width: 70vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 108, 255, 0.20), transparent 65%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-copy {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  max-width: 560px;
+  padding: 72px 24px 72px 78px;
+}
+
+.landing-hi {
+  font-style: italic;
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin: 0 0 2px;
+}
+
+.landing-name {
+  font-size: clamp(56px, 7.5vw, 94px);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: #fff;
+  margin: 0;
+}
+
+.landing-role {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin: 10px 0 0;
+}
+
+.landing-claim {
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 30px 0 0;
+}
+.landing-claim strong { color: var(--text); font-weight: 600; }
+
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 32px;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 12px 32px -12px rgba(124, 108, 255, 0.9);
+}
+.landing-cta:hover { background: var(--accent-hover); }
+
+.landing-stats { display: flex; gap: 36px; margin-top: 38px; }
+.landing-stat { display: flex; flex-direction: column; }
+.landing-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #fff;
+}
+.landing-stat-label { font-size: 12.5px; color: var(--text-muted); }
+
+.landing-art {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+}
+.landing-art img {
+  display: block;
+  width: 100%;
+  max-width: 580px;
+  height: auto;
+  max-height: 100vh;
+  object-fit: contain;
+  object-position: bottom;
+}
+/* Finché l'immagine del personaggio non c'è, la landing resta a una colonna
+   invece di lasciare mezza pagina vuota. */
+.landing-art.is-missing { display: none; }
+.landing:has(.landing-art.is-missing) { grid-template-columns: 1fr; }
+.landing:has(.landing-art.is-missing) .landing-glow { right: 20%; }
+
+@media (max-width: 900px) {
+  .landing { grid-template-columns: 1fr; align-items: start; }
+  .landing-copy { padding: 64px 28px 32px 60px; }
+  .landing-art img { max-width: 340px; margin: 0 auto; }
+  .landing-glow { right: 50%; transform: translateX(50%); bottom: 0; }
 }
 
 /* ------------------------------------------------------------------ Chat */

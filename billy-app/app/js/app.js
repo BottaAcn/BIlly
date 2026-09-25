@@ -4,12 +4,13 @@
 // non accoppiare chat-view.js e catalog-view.js tra loro).
 import './components/billy-modal.js';
 import './components/billy-toast-container.js';
+import { initHomeView, loadHomeStats } from './views/home-view.js';
 import { initChatView } from './views/chat-view.js';
 import { initCatalogView, loadCatalog, openAssetDetail } from './views/catalog-view.js';
 import { initUploadView } from './views/upload-view.js';
 import { initQueueView, loadQueue } from './views/queue-view.js';
 
-const views = ['chat', 'catalog', 'upload', 'queue'];
+const views = ['home', 'chat', 'catalog', 'upload', 'queue'];
 
 function showView(name) {
   views.forEach((v) => {
@@ -18,12 +19,15 @@ function showView(name) {
   document.querySelectorAll('.nav-item').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.view === name);
   });
+  if (name === 'home') loadHomeStats();
   if (name === 'catalog') loadCatalog();
   if (name === 'queue') loadQueue();
   closeSidebar();
 }
 
-document.querySelectorAll('.nav-item[data-view]').forEach((btn) => {
+// [data-view] e non .nav-item[data-view]: la stessa navigazione vale anche
+// per la CTA "Start chatting" della landing, senza duplicare il handler.
+document.querySelectorAll('[data-view]').forEach((btn) => {
   btn.addEventListener('click', () => showView(btn.dataset.view));
 });
 
@@ -62,6 +66,16 @@ sidebarToggle.addEventListener('click', () => {
 });
 sidebarBackdrop.addEventListener('click', closeSidebar);
 
+// Logo neon in sidebar: se il file non c'è (o non è ancora stato fornito)
+// si mostra il nome testuale al suo posto.
+const brandLogo = document.getElementById('brand-logo');
+const brandName = document.getElementById('brand-name');
+brandLogo.addEventListener('error', () => {
+  brandLogo.hidden = true;
+  brandName.hidden = false;
+});
+
+initHomeView();
 initChatView();
 initCatalogView();
 initUploadView();
