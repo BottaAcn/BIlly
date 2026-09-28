@@ -190,6 +190,34 @@ function renderStats() {
     </div>`;
 }
 
+// ── Podio ──────────────────────────────────────────────────────────────
+// Disposizione 2-1-3, quella del podio vero: il primo al centro e piu'
+// alto, gli altri due che scendono ai lati. Leggere "chi ha vinto" da tre
+// righe identiche di una lista richiede di confrontare tre numeri; qui si
+// capisce dalla forma, prima di leggere.
+const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H5a2 2 0 0 0 0 4h2"/><path d="M17 6h2a2 2 0 0 1 0 4h-2"/></svg>';
+const MEDAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="15" r="6"/><path d="M8.2 9.5 5 2h5l2.5 5.5"/><path d="M15.8 9.5 19 2h-5l-1 2.2"/></svg>';
+
+function podiumCard(r, place) {
+  const isMe = r.player.ID === state.me.ID;
+  return `
+    <button type="button" class="g-pod p${place}${isMe ? ' me' : ''}"
+            data-player-id="${esc(r.player.ID)}"
+            title="Apri la scheda di ${esc(r.player.displayName)}">
+      <div class="g-pod-ico">${place === 1 ? TROPHY : MEDAL}</div>
+      <div class="g-pod-av">${esc(initials(r.player.displayName))}</div>
+      <div class="g-pod-name">${esc(r.player.displayName)}${isMe ? ' <span class="g-you">tu</span>' : ''}</div>
+      <div class="g-pod-dept">${esc(r.player.department || '—')}</div>
+      <div class="g-pod-pts">${num(r.points)}<small> pt</small></div>
+      <div class="g-pod-step"><span class="g-pod-place">${place}</span></div>
+    </button>`;
+}
+
+function podiumHtml(top) {
+  const slots = [[top[1], 2], [top[0], 1], [top[2], 3]].filter(([r]) => r);
+  return `<div class="g-podium">${slots.map(([r, place]) => podiumCard(r, place)).join('')}</div>`;
+}
+
 function rowHtml(r) {
   const isMe = r.player.ID === state.me.ID;
   const medal = r.rank <= 3 ? ` r${r.rank}` : '';
@@ -198,8 +226,10 @@ function rowHtml(r) {
   // contenuti che vengono usati — tre profili molto diversi a parita' di
   // totale. Un conteggio a zero non si mostra: sarebbe rumore.
   const chip = (key, n) => (n ? `<span class="g-chip ${REASONS[key].chip}" title="${esc(REASONS[key].label)}">${REASONS[key].icon}${n}</span>` : '');
+  // <button> e non <div>: la riga apre la scheda del giocatore, quindi
+  // deve essere raggiungibile da tastiera e annunciata come comando.
   return `
-    <div class="g-row${isMe ? ' me' : ''}">
+    <button type="button" class="g-row${isMe ? ' me' : ''}" data-player-id="${esc(r.player.ID)}">
       <div class="g-rank${medal}">${r.rank}</div>
       <div class="g-av">${esc(initials(r.player.displayName))}</div>
       <div class="g-who">
@@ -212,7 +242,7 @@ function rowHtml(r) {
         ${chip('use', r.uses)}
       </div>
       <div class="g-pts">${num(r.points)}<small> pt</small></div>
-    </div>`;
+    </button>`;
 }
 
 function renderBoard() {
@@ -221,6 +251,12 @@ function renderBoard() {
     : state.board.filter((r) => r.player.seniorityLevel === state.filter);
 
   const pill = (value, label) => `<button class="ftag${state.filter === value ? ' on' : ''}" type="button" data-game-filter="${value}">${label}</button>`;
+
+  // Il podio si mostra solo sulla classifica intera. Con un filtro di
+  // seniority attivo i primi tre della fetta non sono i primi tre della
+  // stagione, e un podio che mostra posizioni 2-5-7 direbbe una bugia.
+  const podium = state.filter === 'all' && rows.length >= 3 ? rows.slice(0, 3) : null;
+  const rest = podium ? rows.slice(3) : rows;
 
   return `
     <div class="g-card">
@@ -238,8 +274,9 @@ function renderBoard() {
         ${pill('all', 'Tutti')}
         ${Object.entries(SENIORITY).map(([k, v]) => pill(k, v)).join('')}
       </div>
+      ${podium ? podiumHtml(podium) : ''}
       <div class="g-rows">
-        ${rows.length ? rows.map(rowHtml).join('') : '<div class="g-empty">Nessuno in questa categoria.</div>'}
+        ${rest.length ? rest.map(rowHtml).join('') : (podium ? '' : '<div class="g-empty">Nessuno in questa categoria.</div>')}
       </div>
     </div>`;
 }
@@ -442,6 +479,85 @@ export async function loadGame() {
   }
 }
 
+// ── Scheda del giocatore ───────────────────────────────────────────────
+// Si apre cliccando una riga o una casella del podio. Riusa <billy-modal>
+// invece di un pannello proprio: e' lo stesso componente del dettaglio
+// asset, quindi stesso aspetto, stessa chiusura con Escape e stesso
+// comportamento al click fuori.
+const modal = document.getElementById('modal');
+
+async function openPlayer(playerId) {
+  const row = state.board.find((r) => r.player.ID === playerId);
+  if (!row || !modal) return;
+
+  const p = row.player;
+  const isMe = p.ID === state.me.ID;
+  const lv = levelOf(p.totalPoints);
+  const gap = state.board[0] && state.board[0].points - row.points;
+
+  const meta = [
+    p.department,
+    SENIORITY[p.seniorityLevel],
+    p.isCertifier ? 'certificatore' : null,
+    p.manager ? `riporta a ${p.manager}` : null
+  ].filter(Boolean).map(esc).join(' · ');
+
+  const stat = (n, l) => `<div class="g-pstat"><div class="g-pstat-n">${n}</div><div class="g-pstat-l">${esc(l)}</div></div>`;
+  const line = (key, n) => `
+    <div class="g-pline">
+      <span class="g-chip ${REASONS[key].chip}">${REASONS[key].icon}</span>
+      <span class="g-pline-l">${esc(REASONS[key].label)}</span>
+      <span class="g-pline-n">${num(n)}</span>
+    </div>`;
+
+  modal.open({
+    title: p.displayName,
+    bodyHtml: `
+      <div class="g-phead">
+        <div class="g-pav">${esc(initials(p.displayName))}</div>
+        <div>
+          <div class="g-pmeta">${meta || '—'}</div>
+          <div class="g-plevel">${esc(lv.current.name)}${lv.next ? ` · ${num(lv.missing)} punti a ${esc(lv.next.name)}` : ''}</div>
+        </div>
+      </div>
+      <div class="g-pstats">
+        ${stat(row.rank + 'º', 'in stagione')}
+        ${stat(num(row.points), 'punti stagione')}
+        ${stat(num(p.totalPoints), 'punti totali')}
+      </div>
+      <div class="g-bar"><div class="g-bar-fill" style="width:${lv.pct}%"></div></div>
+      <p class="g-pnote">${isMe
+        ? (row.rank === 1 ? 'Sei in testa alla stagione.' : `Ti separano <b>${num(gap)}</b> punti dal primo posto.`)
+        : (row.rank === 1 ? 'In testa alla stagione.' : `A <b>${num(gap)}</b> punti dal primo posto.`)}</p>
+      <div class="g-psec">Da dove vengono i punti</div>
+      ${line('upload', row.uploads)}
+      ${line('certify', row.certifications)}
+      ${line('use', row.uses)}
+      <div class="g-psec">Attività recente</div>
+      <div id="g-pacts" class="g-pacts"><div class="g-empty">Caricamento…</div></div>`,
+    footerButtons: [{ label: 'Chiudi', className: 'btn-primary', onClick: () => modal.close() }]
+  });
+
+  // Gli eventi del singolo giocatore si chiedono solo all'apertura: sono
+  // l'unica cosa della scheda che non e' gia' in state.board.
+  let events = [];
+  try {
+    events = await gameApi.listPointEvents({ seasonId: state.season.ID, playerId: p.ID, top: 6 });
+  } catch (e) { /* la scheda resta leggibile senza lo storico */ }
+
+  const box = modal.query('#g-pacts');
+  if (!box) return; // modale gia' chiusa nel frattempo
+  box.innerHTML = events.length
+    ? events.map((e) => `
+        <div class="g-pact">
+          <span class="g-chip ${REASONS[e.reason].chip}">${REASONS[e.reason].icon}</span>
+          <span class="g-pact-t">${esc(e.asset ? e.asset.title : REASONS[e.reason].label)}</span>
+          <span class="g-pact-d">${esc(fmtAgo(e.createdAt))}</span>
+          <span class="g-pact-p">+${num(e.points)}</span>
+        </div>`).join('')
+    : '<div class="g-empty">Nessuna attività in questa stagione.</div>';
+}
+
 export function initGameView() {
   if (!root) return;
   if (SHOW_DEMO_BADGE && demoNote) demoNote.textContent = ' · dati dimostrativi';
@@ -460,6 +576,10 @@ export function initGameView() {
     const act = ev.target.closest('.g-act.link');
     if (act) {
       document.dispatchEvent(new CustomEvent('open-asset', { detail: { assetId: act.dataset.assetId } }));
+      return;
     }
+    // Righe di classifica e caselle del podio: aprono la scheda.
+    const who = ev.target.closest('[data-player-id]');
+    if (who) openPlayer(who.dataset.playerId);
   });
 }

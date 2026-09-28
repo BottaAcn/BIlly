@@ -91,15 +91,15 @@ const ROSTER = [
   // Quinto o giu' di li' in classifica, non primo: la vista deve mostrare
   // com'e' fatta la riga "sei tu" in mezzo al gruppo, e quanto manca a chi
   // sta davanti. Una demo in cui chi guarda e' gia' primo non dice nulla.
-  { ID: uuid('9a1e0001', 1), userId: 'anonymous', displayName: 'Ospite', department: 'SAP Practice', manager: 'Marta Ferrero', seniorityLevel: 'senior', isCertifier: true, isAdmin: true, carry: 240, weight: 0.5 },
-  { ID: uuid('9a1e0002', 2), userId: 'm.ferrero', displayName: 'Marta Ferrero', department: 'SAP Analytics', manager: 'Luca Prandi', seniorityLevel: 'manager', isCertifier: true, isAdmin: false, carry: 620, weight: 1.5 },
-  { ID: uuid('9a1e0003', 3), userId: 'd.esposito', displayName: 'Davide Esposito', department: 'SAP Analytics', manager: 'Marta Ferrero', seniorityLevel: 'senior', isCertifier: true, isAdmin: false, carry: 380, weight: 1.35 },
-  { ID: uuid('9a1e0004', 4), userId: 'g.rinaldi', displayName: 'Giulia Rinaldi', department: 'Datasphere', manager: 'Marta Ferrero', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 90, weight: 1.2 },
-  { ID: uuid('9a1e0005', 5), userId: 'l.prandi', displayName: 'Luca Prandi', department: 'Delivery', manager: null, seniorityLevel: 'manager', isCertifier: true, isAdmin: true, carry: 510, weight: 0.8 },
-  { ID: uuid('9a1e0006', 6), userId: 's.colombo', displayName: 'Sara Colombo', department: 'BPC & Planning', manager: 'Luca Prandi', seniorityLevel: 'senior', isCertifier: false, isAdmin: false, carry: 300, weight: 1.0 },
-  { ID: uuid('9a1e0007', 7), userId: 'a.bianchi', displayName: 'Andrea Bianchi', department: 'Datasphere', manager: 'Marta Ferrero', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 60, weight: 0.9 },
-  { ID: uuid('9a1e0008', 8), userId: 'f.moretti', displayName: 'Francesca Moretti', department: 'BPC & Planning', manager: 'Luca Prandi', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 40, weight: 0.7 },
-  { ID: uuid('9a1e0009', 9), userId: 'r.gatti', displayName: 'Riccardo Gatti', department: 'Delivery', manager: 'Luca Prandi', seniorityLevel: 'senior', isCertifier: true, isAdmin: false, carry: 270, weight: 0.6 }
+  { ID: uuid('9a1e0001', 1), userId: 'anonymous', displayName: 'Ospite', department: 'SAP Practice', manager: 'Antonio Iuliani', seniorityLevel: 'senior', isCertifier: true, isAdmin: true, carry: 240, weight: 0.605 },
+  { ID: uuid('9a1e0002', 2), userId: 'a.iuliani', displayName: 'Antonio Iuliani', department: 'SAP Analytics', manager: 'Luca Prandi', seniorityLevel: 'manager', isCertifier: true, isAdmin: false, carry: 620, weight: 4.000 },
+  { ID: uuid('9a1e0003', 3), userId: 'r.fresi', displayName: 'Riccardo Fresi', department: 'SAP Analytics', manager: 'Antonio Iuliani', seniorityLevel: 'senior', isCertifier: true, isAdmin: false, carry: 380, weight: 0.790 },
+  { ID: uuid('9a1e0004', 4), userId: 'm.crosta', displayName: 'Matteo Crosta', department: 'Datasphere', manager: 'Antonio Iuliani', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 90, weight: 1.708 },
+  { ID: uuid('9a1e0005', 5), userId: 'l.prandi', displayName: 'Luca Prandi', department: 'Delivery', manager: null, seniorityLevel: 'manager', isCertifier: true, isAdmin: true, carry: 510, weight: 0.345 },
+  { ID: uuid('9a1e0006', 6), userId: 's.colombo', displayName: 'Sara Colombo', department: 'BPC & Planning', manager: 'Luca Prandi', seniorityLevel: 'senior', isCertifier: false, isAdmin: false, carry: 300, weight: 1.000 },
+  { ID: uuid('9a1e0007', 7), userId: 'a.bianchi', displayName: 'Andrea Bianchi', department: 'Datasphere', manager: 'Antonio Iuliani', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 60, weight: 0.900 },
+  { ID: uuid('9a1e0008', 8), userId: 'f.moretti', displayName: 'Francesca Moretti', department: 'BPC & Planning', manager: 'Luca Prandi', seniorityLevel: 'analyst', isCertifier: false, isAdmin: false, carry: 40, weight: 0.700 },
+  { ID: uuid('9a1e0009', 9), userId: 'r.gatti', displayName: 'Riccardo Gatti', department: 'Delivery', manager: 'Luca Prandi', seniorityLevel: 'senior', isCertifier: true, isAdmin: false, carry: 270, weight: 0.540 }
 ];
 
 export const MOCK_CURRENT_USER_ID = 'anonymous';
