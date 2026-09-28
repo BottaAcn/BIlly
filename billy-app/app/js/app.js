@@ -113,10 +113,14 @@ collapseBtn.addEventListener('click', () => {
 // si mostra il nome testuale al suo posto.
 const brandLogo = document.getElementById('brand-logo');
 const brandName = document.getElementById('brand-name');
-brandLogo.addEventListener('error', () => {
+// complete/naturalWidth oltre al listener: questo modulo e' differito, se
+// il caricamento e' gia' fallito l'evento 'error' e' passato da un pezzo.
+const showBrandFallback = () => {
   brandLogo.hidden = true;
   brandName.hidden = false;
-});
+};
+if (brandLogo.complete && brandLogo.naturalWidth === 0) showBrandFallback();
+brandLogo.addEventListener('error', showBrandFallback);
 
 initIntroView();
 initChatView();

@@ -22,22 +22,19 @@ const HANDOFF_MS = 420;
 // sta ancora dissolvendo e non va staccata dal layout.
 const REMOVE_MS = 520;
 
-// L'intro e' un momento di brand, non un passaggio obbligato: riproporla
-// a ogni reload sarebbe punitivo per chi sta gia' lavorando (e in
-// sviluppo). Una volta per sessione del tab e' il compromesso: chi apre
-// l'app da zero la vede, chi ricarica no. sessionStorage e non
-// localStorage, cosi' il giorno dopo l'intro c'e' di nuovo.
-const SEEN_KEY = 'billy.intro.seen';
-
-function markSeen() {
-  // Storage negato (iframe sandboxed, cookie bloccati): si rivedra'
-  // l'intro al reload, non e' un errore da propagare.
-  try { sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* ignorato */ }
-}
-
-function alreadySeen() {
-  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; }
-}
+// L'intro resta finche' non si preme "Start chatting", sempre.
+//
+// C'era un "mostrala una volta per sessione del tab" con un flag in
+// sessionStorage, ed era sbagliato: app.js e' un modulo ES, quindi
+// differito. Il browser dipinge l'intro, poi scarica e valuta tutta la
+// catena di import, e solo allora initIntroView() poteva nasconderla —
+// risultato, l'intro compariva e spariva da sola dopo un paio di secondi
+// senza che nessuno avesse premuto niente. Un salto deciso dopo il primo
+// paint non e' un salto, e' un lampo.
+//
+// Se un giorno si volesse davvero saltarla, la decisione va presa PRIMA
+// del paint (script inline nell'<head> che mette l'attributo hidden sul
+// markup), non in un modulo differito.
 
 function goToChat() {
   document.dispatchEvent(new CustomEvent('navigate-view', { detail: { view: 'chat' } }));
@@ -46,7 +43,6 @@ function goToChat() {
 function enterApp() {
   if (intro.hidden || intro.classList.contains('out')) return;
   intro.classList.add('out');
-  markSeen();
   setTimeout(goToChat, HANDOFF_MS);
   // .out mette gia' pointer-events:none, ma l'intro resterebbe nel flusso
   // con un bottone raggiungibile da tastiera sopra l'app: a dissolvenza
@@ -70,16 +66,17 @@ async function loadStats() {
 export function initIntroView() {
   if (!intro) return;
 
-  if (alreadySeen()) {
-    intro.hidden = true;
-    goToChat();
-    return;
-  }
-
   // Se il PNG del personaggio manca si nasconde la colonna destra invece
   // di mostrare l'icona di immagine rotta: la colonna sinistra da sola
   // resta una intro sensata.
-  character.addEventListener('error', () => { introRight.hidden = true; });
+  //
+  // Il controllo su complete/naturalWidth serve perche' questo modulo e'
+  // differito: se il caricamento e' gia' fallito prima che arrivassimo
+  // qui, l'evento 'error' e' gia' passato e il listener non scatterebbe
+  // mai.
+  const hideArt = () => { introRight.hidden = true; };
+  if (character.complete && character.naturalWidth === 0) hideArt();
+  character.addEventListener('error', hideArt);
 
   startBtn.addEventListener('click', enterApp);
   loadStats();
