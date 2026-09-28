@@ -2,46 +2,6 @@
    Direzione: dark-mode di prima classe, un solo colore accento, densità alta
    nelle liste, spaziosità nella lettura. Vedi doc/V1/frontend-design-research.md */
 
-:root {
-  --bg: #0a0a0c;
-  --surface: #16161a;
-  --surface-hover: #1d1d22;
-  --surface-active: #202027;
-  --border: #26262c;
-  --border-strong: #34343c;
-  --text: #f1f1f3;
-  --text-secondary: #a3a3ad;
-  --text-muted: #6b6b76;
-
-  --accent: #7c6cff;
-  --accent-hover: #9284ff;
-  --accent-text: #ffffff;
-  --accent-bg: rgba(124, 108, 255, 0.14);
-  --accent-border: rgba(124, 108, 255, 0.35);
-
-  --success: #3ecf8e;
-  --success-bg: rgba(62, 207, 142, 0.14);
-  --warning: #f2b84b;
-  --warning-bg: rgba(242, 184, 75, 0.14);
-  --muted-state: #9a9aa4;
-  --muted-state-bg: rgba(154, 154, 164, 0.14);
-  --danger: #ef5a5a;
-  --danger-bg: rgba(239, 90, 90, 0.14);
-  --danger-hover: #ff6b6b;
-
-  --radius-lg: 14px;
-  --radius: 10px;
-  --radius-sm: 7px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
-  --shadow-modal: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --sidebar-w: 240px;
-  --content-max: 860px;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 * { box-sizing: border-box; }
 

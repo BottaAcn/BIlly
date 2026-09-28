@@ -4,13 +4,13 @@
 // non accoppiare chat-view.js e catalog-view.js tra loro).
 import './components/billy-modal.js';
 import './components/billy-toast-container.js';
-import { initHomeView, loadHomeStats } from './views/home-view.js';
+import { initIntroView } from './views/intro-view.js';
 import { initChatView, prefillChat } from './views/chat-view.js';
 import { initCatalogView, loadCatalog, openAssetDetail } from './views/catalog-view.js';
 import { initUploadView } from './views/upload-view.js';
 import { initQueueView, loadQueue } from './views/queue-view.js';
 
-const views = ['home', 'chat', 'catalog', 'upload', 'queue'];
+const views = ['chat', 'catalog', 'upload', 'queue'];
 
 function showView(name) {
   views.forEach((v) => {
@@ -19,7 +19,6 @@ function showView(name) {
   document.querySelectorAll('.nav-item').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.view === name);
   });
-  if (name === 'home') loadHomeStats();
   if (name === 'catalog') loadCatalog();
   if (name === 'queue') loadQueue();
   closeSidebar();
@@ -83,7 +82,7 @@ brandLogo.addEventListener('error', () => {
   brandName.hidden = false;
 });
 
-initHomeView();
+initIntroView();
 initChatView();
 initCatalogView();
 initUploadView();

@@ -1,0 +1,82 @@
+/* Token del design system, ripresi alla lettera da
+   doc/FrontEnd/billy_final_nonfinal.html (righe 10-16).
+
+   I nomi corti (--v, --t1, --s2, --bdr) sono quelli del sorgente ed esistono
+   perché le regole vanno trascritte VERBATIM da quel file: rinominarle in
+   fase di copia è il modo piu' facile per introdurre differenze visive.
+   Sotto, gli alias semantici che il codice esistente gia' usa puntano agli
+   stessi valori, cosi' nulla si rompe mentre il restyling procede. */
+
+:root {
+  /* --- superfici --- */
+  --bg: #0d0818;
+  --s1: #130d20;
+  --s2: #1a1130;
+  --s3: #221540;
+
+  /* --- viola --- */
+  --v: #7857ff;
+  --v2: #9b7fff;
+  --v3: #c4b5fd;
+  --v4: rgba(120, 87, 255, .15);
+
+  /* --- testo --- */
+  --t1: #f0f0f8;
+  --t2: rgba(240, 240, 248, .6);
+  --t3: rgba(240, 240, 248, .28);
+  --t4: rgba(240, 240, 248, .1);
+
+  /* --- bordi --- */
+  --bdr: rgba(255, 255, 255, .06);
+  --bdr2: rgba(255, 255, 255, .11);
+  --bdr3: rgba(120, 87, 255, .35);
+
+  /* --- stati --- */
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #fbbf24;
+
+  /* ---------------------------------------------------------------
+     Alias semantici: nomi usati dal CSS preesistente, rimappati sui
+     token qui sopra. Da NON usare nelle regole nuove — nelle regole
+     nuove si trascrive quello che c'e' nel sorgente.
+     --------------------------------------------------------------- */
+  --surface: var(--s1);
+  --surface-hover: var(--s2);
+  --surface-active: var(--s3);
+  --border: var(--bdr);
+  --border-strong: var(--bdr2);
+  --text: var(--t1);
+  --text-secondary: var(--t2);
+  --text-muted: var(--t3);
+
+  --accent: var(--v);
+  --accent-hover: var(--v2);
+  --accent-text: #ffffff;
+  --accent-bg: var(--v4);
+  --accent-border: var(--bdr3);
+
+  --success: var(--green);
+  --success-bg: rgba(74, 222, 128, .12);
+  --warning: var(--yellow);
+  --warning-bg: rgba(251, 191, 36, .12);
+  --muted-state: var(--t3);
+  --muted-state-bg: rgba(240, 240, 248, .06);
+  --danger: var(--red);
+  --danger-bg: rgba(248, 113, 113, .1);
+  --danger-hover: #ff8a8a;
+
+  /* Raggi, ombre e font: non sono colori, restano quelli del progetto. */
+  --radius-lg: 14px;
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --sidebar-w: 240px;
+  --content-max: 860px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
