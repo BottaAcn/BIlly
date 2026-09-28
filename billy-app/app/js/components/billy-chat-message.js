@@ -9,38 +9,52 @@ import { escapeHtml, fmtTime } from '../utils.js';
 // nei documenti, caricamento di una skill). addStep() li mostra mentre
 // avvengono, setAnswer() li archivia sopra la risposta finale.
 // `marked` è globale (script CDN in index.html), non importato come modulo.
+//
+// Struttura e classi vengono dal mockup (doc/FrontEnd/billy_final_nonfinal.html,
+// righe 106-121 per il CSS, 461-471 per il markup): .msg > avatar +
+// .bubble-wrap > .msg-bub + fonti + .msg-time. La bolla porta anche la
+// classe legacy .chat-msg-text, così il markdown renderizzato dentro
+// (liste, codice, citazioni) resta formattato dalle regole di main.css.
+
+// I puntini di attesa, identici al mockup (showTyping(), riga 471). Il
+// role="status" non c'è nel mockup: senza, chi usa uno screen reader non
+// ha modo di sapere che Billy sta lavorando.
+const TYPING_HTML = '<div class="typing" role="status" aria-label="Billy sta pensando"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+
 class BillyChatMessage extends HTMLElement {
   connectedCallback() {
     const role = this.getAttribute('role') || 'billy';
-    this.classList.add('chat-msg', role);
+    this.classList.add('msg', role);
+    // L'avatar di Billy è il personaggio ritagliato tondo: object-position
+    // center top perché il PNG è a figura intera e in un cerchio da 28px
+    // l'unica parte che si riconosce è la testa.
+    const avatar = role === 'user'
+      ? '<div class="msg-av-u" aria-hidden="true">TU</div>'
+      : '<img class="msg-av-img" src="img/billy-character.png" alt="" aria-hidden="true">';
     this.innerHTML = `
-      <div class="chat-msg-avatar">${role === 'user' ? 'Tu' : 'B'}</div>
-      <div class="chat-msg-body">
-        <div class="chat-msg-name-row">
-          <span class="chat-msg-name">${role === 'user' ? 'Tu' : 'Billy'}</span>
-          <span class="chat-msg-time"></span>
+      ${avatar}
+      <div class="bubble-wrap">
+        <div class="msg-bub ${role === 'user' ? 'u' : 'b'} chat-msg-text"></div>
+        <div class="msg-foot">
+          <span class="msg-time"></span>
+          <span class="chat-msg-actions"></span>
         </div>
-        <div class="chat-msg-text"></div>
-        <div class="chat-msg-actions"></div>
       </div>`;
-    this._textEl = this.querySelector('.chat-msg-text');
-    this._timeEl = this.querySelector('.chat-msg-time');
+    this._bubble = this.querySelector('.msg-bub');
+    this._wrapEl = this.querySelector('.bubble-wrap');
+    this._footEl = this.querySelector('.msg-foot');
     this._actionsEl = this.querySelector('.chat-msg-actions');
-    this._timeEl.textContent = fmtTime(new Date().toISOString());
+    this.querySelector('.msg-time').textContent = fmtTime(new Date().toISOString());
   }
 
   setUserText(text) {
-    this._textEl.innerHTML = `<p>${escapeHtml(text)}</p>`;
+    this._bubble.innerHTML = `<p>${escapeHtml(text)}</p>`;
   }
 
   setThinking() {
     this._steps = [];
     this._preview = '';
-    this._textEl.innerHTML = `
-      <div class="chat-thinking">
-        <span></span><span></span><span></span>
-        <span class="chat-thinking-label">Billy sta pensando...</span>
-      </div>`;
+    this._renderProgress();
   }
 
   // Un passo intermedio dell'agente, già in linguaggio umano.
@@ -68,11 +82,11 @@ class BillyChatMessage extends HTMLElement {
       </div>`).join('');
     const previewHtml = this._preview
       ? `<div class="chat-preview">${escapeHtml(this._preview)}</div>`
-      : `<div class="chat-thinking">
-           <span></span><span></span><span></span>
-           <span class="chat-thinking-label">${steps.length ? 'Billy sta lavorando...' : 'Billy sta pensando...'}</span>
-         </div>`;
-    this._textEl.innerHTML = `${stepsHtml ? `<div class="chat-steps">${stepsHtml}</div>` : ''}${previewHtml}`;
+      : TYPING_HTML;
+    // Solo puntini e nient'altro: il padding lo mette .typing, la bolla lo
+    // azzera (nel mockup è uno style inline, qui la classe .flush).
+    this._bubble.classList.toggle('flush', !steps.length && !this._preview);
+    this._bubble.innerHTML = `${steps.length ? `<div class="chat-steps">${stepsHtml}</div>` : ''}${previewHtml}`;
   }
 
   setAnswer(markdownText, sources = [], steps = null) {
@@ -83,22 +97,30 @@ class BillyChatMessage extends HTMLElement {
         }</details>`
       : '';
     this._steps = done;
-    this._textEl.innerHTML = stepsHtml + marked.parse(markdownText || '');
-    if (sources.length) {
-      const wrap = document.createElement('div');
-      wrap.className = 'chat-sources';
-      sources.forEach((s) => {
-        const chip = document.createElement('billy-source-chip');
-        chip.data = s;
-        wrap.appendChild(chip);
-      });
-      this._textEl.appendChild(wrap);
-    }
+    this._bubble.classList.remove('flush');
+    this._bubble.innerHTML = stepsHtml + marked.parse(markdownText || '');
+    // Le fonti stanno FUORI dalla bolla, come nel mockup: sono una riga
+    // di servizio sotto la risposta, non parte del testo.
+    this._renderSources(sources);
     this._addCopyButton(markdownText || '');
   }
 
+  _renderSources(sources) {
+    if (!sources || !sources.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-srcs';
+    sources.forEach((s) => {
+      const chip = document.createElement('billy-source-chip');
+      chip.data = s;
+      wrap.appendChild(chip);
+    });
+    this._wrapEl.insertBefore(wrap, this._footEl);
+  }
+
   setError(message) {
-    this._textEl.innerHTML = `<p style="color:var(--danger)">Errore: ${escapeHtml(message)}</p>`;
+    this._bubble.classList.remove('flush');
+    this._bubble.classList.add('err');
+    this._bubble.innerHTML = `<p>Errore: ${escapeHtml(message)}</p>`;
   }
 
   _addCopyButton(rawText) {

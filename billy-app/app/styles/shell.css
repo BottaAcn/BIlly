@@ -1,2 +1,173 @@
 /* shell — restyling da doc/FrontEnd/billy_final_nonfinal.html.
-   Caricato DOPO main.css: le regole qui vincono sulle vecchie. */
+   Caricato DOPO main.css: le regole qui vincono sulle vecchie.
+
+   Le regole marcate "mockup" sono trascritte alla lettera dal sorgente
+   (righe 38-52 APP, 54-82 SIDEBAR, 84-90 MAIN): stessi px, stessi rgba,
+   stesse durate. Dove il nostro DOM differisce da quello del mockup la
+   differenza sta in un blocco "adattamento", commentato sul perche'. */
+
+/* ═══════════════════════════════════════════════════════════════ APP ══ */
+
+/* Adattamento. Il mockup ha due wrapper annidati:
+     #shell{height:100vh;display:flex;flex-direction:column}
+     .body-row{flex:1;display:flex;overflow:hidden}
+   Qui il wrapper e' uno solo (.app-shell) e il suo tag e' condiviso con
+   gli altri agenti, quindi non lo si puo' sdoppiare: i due ruoli si
+   fondono nell'unico che serve davvero, la riga a tutta altezza che non
+   scrolla. L'opacity:0 / .vis del mockup non si trasporta: qui l'intro e'
+   un overlay separato (#intro) e la shell sotto e' sempre visibile. */
+body { overflow: hidden; }
+.app-shell { height: 100vh; display: flex; overflow: hidden; }
+
+/* Adattamento. Nel mockup .tbtn ha la sola regola :hover e tutto il resto
+   e' inline sul bottone (riga 308): le dichiarazioni inline diventano la
+   classe, verbatim nei valori. */
+.tbtn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;border:.5px solid var(--bdr2);background:transparent;color:var(--t2);font-size:11.5px;cursor:pointer;font-family:inherit;transition:.12s}
+.tbtn:hover{background:var(--s3);color:var(--t1)}
+
+/* ═══════════════════════════════════════════════════════════ SIDEBAR ══ */
+
+/* Adattamento. L'<aside> porta due classi: .sidebar (drawer responsive,
+   regole legacy in main.css) e .side (mockup). Il padding del legacy non
+   ha corrispettivo nel mockup, quindi la cascata da sola non lo toglie. */
+.sidebar.side { padding: 0; }
+
+/* mockup */
+.side{width:200px;background:var(--s1);border-right:.5px solid var(--bdr);display:flex;flex-direction:column;transition:width .2s;flex-shrink:0}
+.side.collapsed{width:52px}
+.side-logo{display:flex;align-items:center;gap:9px;padding:13px 11px;border-bottom:.5px solid var(--bdr);white-space:nowrap}
+.side-logo-txt{font-size:13.5px;font-weight:600;color:var(--t1);transition:opacity .15s}
+.side.collapsed .side-logo-txt{opacity:0;width:0;overflow:hidden}.side.collapsed .side-logo{justify-content:center}.side.collapsed .collapse-btn{margin-left:0}
+.nav{padding:8px 7px;display:flex;flex-direction:column;gap:2px;flex:1}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer;transition:.12s;position:relative;overflow:hidden;white-space:nowrap}
+.ni:hover{background:var(--t4)}
+.ni.on{background:var(--v4)}
+.ni-bar{position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:var(--v);border-radius:0 3px 3px 0;transition:height .15s}
+.ni.on .ni-bar{height:60%}
+.ni svg{flex-shrink:0;color:var(--t3);transition:color .12s}
+.ni.on svg,.ni:hover svg{color:var(--v2)}
+.ni-label{font-size:12.5px;color:var(--t3);transition:opacity .15s;flex:1}
+.ni.on .ni-label{color:var(--t1)}
+.side.collapsed .ni-label{opacity:0;width:0;overflow:hidden}
+.ni-badge{background:rgba(248,113,113,.18);color:var(--red);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:500;flex-shrink:0;transition:opacity .15s}
+.side.collapsed .ni-badge{opacity:0}
+.side-foot{padding:9px 7px;border-top:.5px solid var(--bdr)}
+.av-row{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;cursor:pointer;overflow:hidden;white-space:nowrap}
+.av-row:hover{background:var(--t4)}
+.av-circle{width:26px;height:26px;border-radius:50%;background:var(--v4);border:.5px solid var(--bdr3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--v2);flex-shrink:0}
+.av-name{font-size:12px;color:var(--t2);transition:opacity .15s}
+.side.collapsed .av-name{opacity:0}
+.collapse-btn{width:26px;height:26px;border-radius:7px;background:var(--v);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:.12s;flex-shrink:0}.collapse-btn:hover{background:var(--v2)}
+.collapse-btn:hover{background:var(--s3);color:var(--t1)}
+
+/* Adattamento — logo.
+   Nello slot del logo il mockup mette, per errore, il PNG del personaggio
+   in base64 e senza classe (la .side-logo-hex 26x26 che aveva previsto
+   non la usa mai). Qui va il marchio vero: e' un lettering "Billy" in
+   600x379, quindi si vincola l'altezza allo slot da 26px e si lascia
+   correre la larghezza, invece di schiacciarlo dentro un quadrato.
+   #brand-name resta il fallback testuale che app.js scopre se il PNG
+   non si carica. */
+.side-logo-img{height:26px;width:auto;display:block;flex-shrink:0}
+.side-logo-tag{font-size:11px;font-weight:400;color:var(--t3)}
+
+/* Adattamento — stato collassato.
+   Il mockup definisce .side.collapsed ma non lo renderizza mai, quindi
+   non dice come ci stiano dentro logo e riga utente. Nei 52px il
+   lettering alto 26px (circa 41px di base) non entra: si rimpicciolisce
+   e si stringono i padding laterali, invece di farlo debordare. */
+.side.collapsed .side-logo{padding-left:6px;padding-right:6px}
+.side.collapsed .side-logo-img{height:20px}
+.side.collapsed .av-row{justify-content:center;padding-left:5px;padding-right:5px}
+.side.collapsed .av-name{width:0;overflow:hidden}
+
+/* Adattamento — bottone di collasso.
+   Il mockup ha la classe .collapse-btn ma nessun bottone nel markup (e
+   due regole :hover che si contraddicono: vince la seconda, trascritte
+   entrambe sopra per fedelta'). Lo si mette in fondo, sotto la riga
+   utente: nella riga del logo, a 52px, non ci starebbe accanto al
+   marchio. margin-left:auto e' l'unica cosa che spiega il
+   .side.collapsed .collapse-btn{margin-left:0} del mockup. */
+.side-foot{display:flex;flex-direction:column;gap:2px}
+.collapse-btn{border:none;margin-left:auto;padding:0}
+.side.collapsed .collapse-btn{margin-left:auto;margin-right:auto}
+.side.collapsed .collapse-btn svg{transform:rotate(180deg)}
+
+/* Adattamento — primo frame.
+   app.js ripristina la preferenza di collasso subito dopo il parsing:
+   senza spegnere le transizioni per un frame, ogni caricamento mostrerebbe
+   la barra che si richiude da sola. */
+.side.no-anim,.side.no-anim *{transition:none}
+
+/* Adattamento — neutralizzazione del legacy.
+   .nav-item resta sui bottoni (il routing [data-view] di app.js ci gira
+   sopra) e si porta dietro opacity:.75 sulle icone, che nel mockup non
+   c'e' perche' il colore lo decide .ni svg. */
+.nav-item.ni svg{opacity:1}
+.nav-item.ni{border:none;background:none;width:100%;text-align:left}
+.nav-item.ni:active{transform:none}
+
+/* Adattamento — focus da tastiera.
+   Voci di nav, riga utente e bottone di collasso sono interattivi: senza
+   un focus visibile la sidebar non si usa senza mouse. Il mockup, che di
+   accessibilita' non si occupa, non ha nulla in merito. */
+.ni:focus-visible,.av-row:focus-visible,.collapse-btn:focus-visible{outline:2px solid var(--v2);outline-offset:-2px}
+
+/* ══════════════════════════════════════════════════════════════ MAIN ══ */
+
+/* mockup, con .main e .pane fusi: il nostro <main> e' l'unico contenitore
+   e scrolla lui: un .pane interno richiederebbe di avvolgere le sezioni
+   delle altre viste, che sono di altri agenti. */
+.main{flex:1;min-width:0;background:linear-gradient(160deg,#0d0818 0%,#150c2a 50%,#0d0818 100%);overflow-y:auto;scrollbar-width:none}
+.main::-webkit-scrollbar{display:none}
+
+/* mockup: transizione d'ingresso delle schermate. Da noi la classe che
+   segna la vista attiva e' .active, non .vis. */
+.view{animation:fadeSlide .16s ease}
+@keyframes fadeSlide{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+@media (prefers-reduced-motion: reduce){.view{animation:none}}
+
+/* ═══════════════════════════════════════════════════════════ RESPONSIVE ══ */
+
+/* Sotto i 900px la sidebar torna il drawer di main.css. Due accortezze:
+   .side{transition:width .2s} cancellerebbe la transizione del transform
+   (stessa specificita', file caricato dopo), e dentro un drawer che si
+   apre e chiude il collasso a 52px non ha alcun senso. */
+@media (max-width: 900px) {
+  .sidebar.side { width: 200px; transition: width .2s, transform 200ms var(--ease); }
+  .side.collapsed { width: 200px; }
+  .side.collapsed .side-logo-txt,
+  .side.collapsed .ni-label,
+  .side.collapsed .av-name,
+  .side.collapsed .ni-badge { opacity: 1; width: auto; }
+  .side.collapsed .side-logo { padding-left: 11px; padding-right: 11px; }
+  .side.collapsed .side-logo-img { height: 26px; }
+  .side.collapsed .av-row { justify-content: flex-start; padding-left: 9px; padding-right: 9px; }
+  .collapse-btn { display: none; }
+}
+
+/* ── intestazioni di catalogo / upload / coda ───────────────────────────
+   Nel mockup sono .sec-head/.sec-body (righe 131-134): niente sticky,
+   niente sfondo, niente bordo inferiore — scorrono col contenuto. Le
+   nostre tre viste usano ancora .view-header/.view-body, che in main.css
+   hanno lo sticky e un background rgba(10,10,12,.85) cablato: sul fondo
+   viola di .main sarebbe una fascia grigia. Qui le regole del mockup
+   vengono applicate ai nostri nomi di classe invece di rinominarli in
+   tutte e tre le viste. */
+.view-header {
+  padding: 20px 20px 12px;
+  position: static;
+  background: none;
+  backdrop-filter: none;
+  border-bottom: none;
+}
+.view-body { padding: 0 20px 20px; }
+.view-title { font-size: 20px; font-weight: 500; color: var(--t1); letter-spacing: -.3px; }
+.view-subtitle { font-size: 13px; color: var(--t3); margin-top: 3px; }
+
+/* shell.css e' caricato dopo main.css, quindi la regola qui sopra batte
+   anche la media query di main.css che lasciava spazio all'hamburger:
+   va ripetuta, o sotto i 900px il titolo finisce sotto il pulsante. */
+@media (max-width: 900px) {
+  .view-header, .view-body { padding-left: 60px; }
+}

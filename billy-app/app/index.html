@@ -21,6 +21,30 @@
 </head>
 <body>
 
+<!-- ============================================================= INTRO -->
+<!-- Splash a tutta pagina: copre la shell (z-index 100) finche' non si
+     preme "Start chatting". Markup ripreso dal mockup, con le immagini
+     come file veri invece che base64 e i contatori riempiti da JS. -->
+<div id="intro">
+  <div class="intro-left">
+    <div class="intro-hi">Hi, I'm</div>
+    <img class="intro-logo" src="img/billy-logo.png" alt="Billy">
+    <div class="intro-tag">Your AI Colleague</div>
+    <div class="intro-desc">Making your work <b>simpler, faster, smarter.</b> Just ask Billy.</div>
+    <button id="intro-start" class="start-btn" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0"><path d="M3 20l1.3-3.9a9 8 0 1 1 3.4 2.9z"/></svg> Start chatting
+    </button>
+    <div class="intro-stats">
+      <div><div class="ist-n" id="intro-stat-assets">&mdash;</div><div class="ist-l">assets</div></div>
+      <div><div class="ist-n" id="intro-stat-certified">&mdash;</div><div class="ist-l">certified</div></div>
+      <div><div class="ist-n">24/7</div><div class="ist-l">available</div></div>
+    </div>
+  </div>
+  <div class="intro-right" id="intro-right">
+    <img class="billy-full" id="intro-character" src="img/billy-character.png" alt="">
+  </div>
+</div>
+
 <div class="app-shell">
 
   <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Apri menu" aria-expanded="false">
@@ -28,36 +52,49 @@
   </button>
   <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 
-  <aside class="sidebar">
-    <div class="brand">
-      <img id="brand-logo" class="brand-logo" src="img/billy-logo.png" alt="Billy">
-      <div id="brand-name" class="brand-name" hidden>Billy</div>
-      <div class="brand-tag">v0 — non definitivo</div>
+  <!-- La sidebar porta due classi: .sidebar per il drawer responsive gia'
+       in main.css, .side per il look del mockup (collassabile a 52px). -->
+  <aside class="sidebar side" id="side">
+    <div class="side-logo">
+      <img id="brand-logo" class="side-logo-img" src="img/billy-logo.png" alt="Billy">
+      <span id="brand-name" class="side-logo-txt" hidden>Billy</span>
+      <span class="side-logo-txt side-logo-tag">v0 — non definitivo</span>
     </div>
 
     <nav class="nav">
-      <button class="nav-item active" data-view="chat">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        Chat Billy
+      <button class="ni nav-item on" data-view="chat" type="button">
+        <span class="ni-bar"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20l1.3-3.9a9 8 0 1 1 3.4 2.9z"/></svg>
+        <span class="ni-label">Chat</span>
       </button>
-      <button class="nav-item" data-view="catalog">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-        Catalogo
+      <button class="ni nav-item" data-view="catalog" type="button">
+        <span class="ni-bar"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="ni-label">Catalogo</span>
       </button>
-      <button class="nav-item" data-view="upload">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>
-        Carica asset
+      <button class="ni nav-item" data-view="upload" type="button">
+        <span class="ni-bar"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
+        <span class="ni-label">Carica asset</span>
       </button>
-      <button class="nav-item" data-view="queue">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Coda di revisione
-        <span id="queue-count" class="badge badge-community" style="margin-left:auto; display:none"></span>
+      <button class="ni nav-item" data-view="queue" type="button">
+        <span class="ni-bar"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+        <span class="ni-label">Revisione</span>
+        <span id="queue-count" class="ni-badge" style="display:none"></span>
       </button>
     </nav>
 
-    <div class="sidebar-footer">
-      Ambiente di sviluppo · nessun login attivo<br>
-      Backend fisso — vedi doc/V1
+    <div class="side-foot">
+      <!-- Nessun login attivo in questo ambiente: l'identita' non si
+           inventa, la riga resta generica e il dettaglio sta nel title. -->
+      <div class="av-row" title="Ambiente di sviluppo · nessun login attivo — backend fisso, vedi doc/V1">
+        <div class="av-circle">TU</div>
+        <span class="av-name">Ospite</span>
+      </div>
+      <button id="side-collapse" class="collapse-btn" type="button" aria-controls="side" aria-expanded="true" aria-label="Comprimi la barra laterale" title="Comprimi la barra laterale">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
     </div>
   </aside>
 
@@ -66,36 +103,47 @@
 
     <!-- ============================================================ CHAT -->
     <section id="view-chat" class="view">
-      <div class="view-header view-header-row">
-        <div>
-          <h1 class="view-title">Chiedi a Billy</h1>
-          <p class="view-subtitle">Risponde sulla base degli asset del catalogo, citando le fonti e il loro stato di certificazione.</p>
-        </div>
-        <button id="chat-reset" class="btn btn-sm btn-ghost" type="button" title="Cancella la conversazione corrente">Nuova conversazione</button>
+      <div class="chat-topbar">
+        <button id="chat-reset" class="tbtn" type="button" title="Cancella la conversazione corrente">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuova conversazione
+        </button>
       </div>
 
-      <div id="chat-empty" class="chat-empty">
-        <div class="chat-orb"></div>
-        <div class="chat-orb orb-2"></div>
-        <div class="chat-empty-content">
-          <p class="chat-empty-title">Fai una domanda per iniziare</p>
-          <p class="chat-empty-sub">Es. "Quanti giorni di ferie ho a disposizione?" oppure "Come funziona la procedura di onboarding?"</p>
-          <div id="suggested-questions" class="suggested-questions">
-            <button class="suggested-chip" type="button">Come funziona la procedura di onboarding?</button>
-            <button class="suggested-chip" type="button">Quali policy sono certificate?</button>
-            <button class="suggested-chip" type="button">Come funziona lo smart working?</button>
+      <div class="chat-wrap">
+        <div id="chat-body" class="chat-body">
+
+          <div id="chat-empty" class="chat-hero">
+            <div class="hero-greeting"><span></span>Hey, sono Billy</div>
+            <div class="hero-h">Cosa vuoi<br><em>scoprire oggi?</em></div>
+            <div class="hero-s">Rispondo sulla base del catalogo aziendale, citando le fonti e il loro stato di certificazione.</div>
+            <!-- Le pill mostrano un'etichetta corta ma precompilano la
+                 domanda vera (data-question): il testo visibile e' quello
+                 che sta in una pill, quello inviato e' quello che serve
+                 a Billy per rispondere. -->
+            <div id="suggested-questions" class="pills-scroll">
+              <button class="pill suggested-chip" type="button" data-question="Come funziona la procedura di onboarding?" title="Come funziona la procedura di onboarding?">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Onboarding
+              </button>
+              <button class="pill suggested-chip" type="button" data-question="Quali policy sono certificate?" title="Quali policy sono certificate?">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Policy
+              </button>
+              <button class="pill suggested-chip" type="button" data-question="Come funziona lo smart working?" title="Come funziona lo smart working?">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>Smart working
+              </button>
+            </div>
           </div>
+
+          <div id="chat-thread" class="chat-thread" style="display:none"></div>
         </div>
-      </div>
 
-      <div id="chat-thread" class="chat-thread" style="display:none"></div>
-
-      <div class="chat-inputbar">
-        <div class="chat-inputbar-inner">
-          <textarea id="chat-input" class="chat-input" rows="1" placeholder="Scrivi una domanda a Billy..."></textarea>
-          <button id="chat-send" class="chat-send" title="Invia">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
-          </button>
+        <div class="chat-input-wrap">
+          <div class="chat-input-row">
+            <textarea id="chat-input" class="chat-input" rows="1" placeholder="Scrivi una domanda a Billy…"></textarea>
+            <button id="chat-send" class="send-btn" type="button" title="Invia" aria-label="Invia">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -104,110 +152,64 @@
     <section id="view-catalog" class="view">
       <div class="view-header">
         <h1 class="view-title">Catalogo</h1>
-        <p class="view-subtitle">Asset pubblicati e già visibili a Billy.</p>
+        <p class="view-subtitle">Asset pubblicati e visibili a Billy.</p>
       </div>
       <div class="view-body">
-        <div class="toolbar">
-          <div class="search-box">
-            <span class="search-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            </span>
-            <input id="catalog-search" class="input" placeholder="Cerca per titolo o descrizione...">
+        <div class="cat-toolbar">
+          <input id="catalog-search" class="cat-search" placeholder="Cerca asset…">
+          <!-- Ricerca approfondita (vettoriale) e Aggiorna non esistono nel
+               mockup: sono funzioni reali del backend, restano qui. -->
+          <div class="cat-actions">
+            <label class="toggle-deep">
+              <span class="switch">
+                <input type="checkbox" id="deep-search-toggle">
+                <span class="switch-track"></span>
+              </span>
+              Ricerca approfondita
+            </label>
+            <button class="ftag" id="catalog-refresh" type="button">Aggiorna</button>
           </div>
-          <label class="toggle-deep">
-            <span class="switch">
-              <input type="checkbox" id="deep-search-toggle">
-              <span class="switch-track"></span>
-            </span>
-            Ricerca approfondita
-          </label>
-          <select class="select" id="catalog-sort" style="width:auto">
-            <option value="recent">Più recenti</option>
-            <option value="alpha">Alfabetico</option>
-          </select>
-          <button class="btn btn-sm" id="catalog-refresh">Aggiorna</button>
+          <div class="cat-filters" id="catalog-filters">
+            <button class="ftag on" data-filter-cert="all" type="button">Tutti</button>
+            <button class="ftag" data-filter-cert="certified" type="button">✓ Certificato</button>
+            <button class="ftag" data-filter-cert="certifiedOutdated" type="button">✗ Scaduto</button>
+            <button class="ftag" data-filter-cert="community" type="button">◆ Community</button>
+            <button class="ftag" data-filter-cert="deprecated" type="button">○ Ritirato</button>
+          </div>
         </div>
-        <div class="filter-bar" id="catalog-filters">
-          <span class="filter-bar-label">Certificazione:</span>
-          <button class="filter-chip active" data-filter-cert="all" type="button">Tutte</button>
-          <button class="filter-chip" data-filter-cert="certified" type="button">Certificato</button>
-          <button class="filter-chip" data-filter-cert="certifiedOutdated" type="button">Scaduto</button>
-          <button class="filter-chip" data-filter-cert="community" type="button">Community</button>
-          <button class="filter-chip" data-filter-cert="deprecated" type="button">Ritirato</button>
+        <div class="sort-row" id="catalog-sort">
+          <span>Ordina:</span>
+          <button class="srt on" data-sort="recent" type="button">Più recenti</button>
+          <button class="srt" data-sort="alpha" type="button">A → Z</button>
+          <button class="srt" data-sort="cert" type="button">Certificati</button>
         </div>
         <p id="catalog-count" class="catalog-count"></p>
-        <div id="catalog-grid" class="asset-grid"></div>
+        <div id="catalog-grid" class="cgrid"></div>
       </div>
     </section>
 
     <!-- ========================================================== UPLOAD -->
     <section id="view-upload" class="view">
       <div class="view-header">
-        <h1 class="view-title">Carica un nuovo asset</h1>
-        <p class="view-subtitle">Ogni contenuto passa da una coda di revisione prima di diventare visibile nel catalogo e citabile da Billy.</p>
+        <h1 class="view-title">Carica asset</h1>
+        <p class="view-subtitle">Ogni contenuto passa dalla revisione prima di essere visibile.</p>
       </div>
       <div class="view-body">
-        <form id="upload-form" class="form-card">
-          <div class="field">
-            <label>Titolo</label>
-            <input class="input" id="up-title" required placeholder="Es. Policy smart working">
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label>Tipo</label>
-              <select class="select" id="up-type">
-                <option value="document">Documento</option>
-                <option value="skill">Skill</option>
-                <option value="tool">Tool</option>
-                <option value="application">Applicazione</option>
-                <option value="interface">Interfaccia</option>
-                <option value="other">Altro</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Link esterno (opzionale)</label>
-              <input class="input" id="up-link" placeholder="https://...">
-            </div>
-          </div>
-          <div class="field">
-            <label>Descrizione</label>
-            <textarea class="textarea" id="up-description" style="min-height:70px" placeholder="Breve descrizione (opzionale)"></textarea>
-          </div>
-
-          <div class="field">
-            <label>Contenuto</label>
-            <div class="tabs">
-              <button type="button" class="tab active" data-content-tab="text">Testo incollato</button>
-              <button type="button" class="tab" data-content-tab="file">File</button>
-            </div>
-            <div id="content-tab-text">
-              <textarea class="textarea" id="up-content" placeholder="Incolla qui il testo del documento..."></textarea>
-            </div>
-            <div id="content-tab-file" style="display:none">
-              <label class="file-drop" id="file-drop-label">
-                <span id="file-drop-text">Trascina un file qui o clicca per selezionarlo (PDF, DOCX, PPTX, TXT)</span>
-                <input type="file" id="up-file" accept=".pdf,.docx,.pptx,.txt" style="display:none">
-              </label>
-            </div>
-            <p class="field-hint">Fornisci testo incollato oppure un file, non entrambi.</p>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary" id="upload-submit">Carica (va in revisione)</button>
-          </div>
-          <div id="upload-alert"></div>
-        </form>
+        <!-- Il wizard e' generato da js/views/upload-view.js: numero e
+             contenuto degli step dipendono dal tipo di asset scelto
+             (tabella TYPE_WIZARDS), quindi il markup non puo' stare qui. -->
+        <div id="upload-wizard"></div>
       </div>
     </section>
 
     <!-- =========================================================== QUEUE -->
     <section id="view-queue" class="view">
       <div class="view-header">
-        <h1 class="view-title">Coda di revisione</h1>
-        <p class="view-subtitle">Contenuti nuovi in attesa di prima approvazione, e asset scaduti in attesa di rinnovo.</p>
+        <h1 class="view-title">Revisione</h1>
+        <p class="view-subtitle">Contenuti in attesa di approvazione e asset scaduti.</p>
       </div>
       <div class="view-body">
-        <div id="queue-list" class="row-list"></div>
+        <div id="queue-list" class="qlist"></div>
       </div>
     </section>
 

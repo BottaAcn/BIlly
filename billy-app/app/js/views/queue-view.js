@@ -20,15 +20,13 @@ export async function refreshQueueCount() {
 }
 
 // Nuovi contenuti e rinnovi in scadenza sono processi diversi (un rinnovo
-// non si rifiuta, si riusa l'ultima revisione approvata): separarli in due
-// sezioni li rende distinguibili senza dover leggere l'etichetta su ogni riga.
+// non si rifiuta, si riusa l'ultima revisione approvata): l'icona tonda del
+// mockup li distingue a colpo d'occhio, l'intestazione di gruppo dice quale
+// regola vale per quel blocco.
 function renderQueue(items) {
   queueList.innerHTML = '';
   if (!items.length) {
-    queueList.innerHTML = `<div class="empty-state">
-      <p class="empty-state-title">Coda vuota</p>
-      <p>Nessun contenuto in attesa di revisione o rinnovo.</p>
-    </div>`;
+    queueList.innerHTML = '<div class="qempty">Nessun elemento in coda</div>';
     return;
   }
 
@@ -40,67 +38,64 @@ function renderQueue(items) {
   groups.forEach((group) => {
     if (!group.items.length) return;
     const section = document.createElement('div');
-    section.className = 'queue-section';
+    section.className = 'qgroup';
 
     const heading = document.createElement('p');
-    heading.className = 'queue-section-title';
+    heading.className = 'qgroup-title';
     heading.textContent = `${group.title} (${group.items.length})`;
     section.appendChild(heading);
 
-    const list = document.createElement('div');
-    list.className = 'row-list';
     group.items.forEach((item) => {
       const row = document.createElement('billy-queue-row');
       row.item = item;
       row.addEventListener('preview', (e) => previewFlow(e.detail.revisionId));
       row.addEventListener('approve', (e) => approveFlow(e.detail.revisionId));
       row.addEventListener('reject', (e) => rejectFlow(e.detail.revisionId));
-      list.appendChild(row);
+      section.appendChild(row);
     });
-    section.appendChild(list);
     queueList.appendChild(section);
   });
 }
 
 export async function loadQueue() {
-  queueList.innerHTML = Array.from({ length: 3 }).map(() => `<div class="row skeleton" style="height:56px"></div>`).join('');
+  queueList.innerHTML = Array.from({ length: 3 })
+    .map(() => '<div class="skel" style="height:58px;border-radius:12px;margin-bottom:8px"></div>').join('');
   try {
     const items = await api.listReviewQueue();
     renderQueue(items);
     updateQueueBadge(items.length);
   } catch (e) {
-    queueList.innerHTML = `<div class="empty-state">Errore: ${escapeHtml(e.message)}</div>`;
+    queueList.innerHTML = `<div class="qempty">Errore: ${escapeHtml(e.message)}</div>`;
   }
 }
 
 // Sola lettura: un certificatore deve poter vedere cosa sta approvando o
 // rifiutando prima di decidere, non solo il titolo della riga.
 async function previewFlow(revisionId) {
-  modal.open({ title: 'Caricamento anteprima...', bodyHtml: '<div class="skeleton" style="height:120px"></div>' });
+  modal.open({ title: 'Caricamento anteprima...', bodyHtml: '<div class="skel" style="height:120px"></div>' });
   try {
     const detail = await api.getRevisionDetail(revisionId);
     const attachmentsHtml = detail.attachments.length
       ? detail.attachments.map((att) => `
-          <div class="detail-attachment">
+          <div class="modal-att">
             <div>
-              <div class="detail-attachment-name">${escapeHtml(att.filename)}</div>
-              <div class="detail-attachment-meta">${att.mimeType || ''}</div>
+              <div class="modal-att-name">${escapeHtml(att.filename)}</div>
+              <div class="modal-att-meta">${escapeHtml(att.mimeType || '')}</div>
             </div>
           </div>`).join('')
-      : '<p class="field-hint">Nessun allegato.</p>';
+      : '<div class="modal-empty">Nessun allegato.</div>';
 
     modal.open({
       title: detail.title,
+      tagsHtml: `
+        <div class="modal-type-lbl">${TYPE_LABELS[detail.type] || detail.type || ''}</div>
+        ${detail.submittedBy ? `<div class="modal-field-lbl" style="font-size:12px">Inviato da ${escapeHtml(detail.submittedBy)} · ${fmtDate(detail.submittedAt)}</div>` : ''}`,
       bodyHtml: `
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
-          <span class="type-tag">${TYPE_LABELS[detail.type] || detail.type}</span>
-          ${detail.submittedBy ? `<span class="row-meta">Inviato da ${escapeHtml(detail.submittedBy)} · ${fmtDate(detail.submittedAt)}</span>` : ''}
-        </div>
-        ${detail.description ? `<p style="font-size:13.5px; color:var(--text-secondary); margin:0 0 14px;">${escapeHtml(detail.description)}</p>` : ''}
-        ${detail.externalLink ? `<p style="margin:0 0 14px;"><a href="${detail.externalLink}" target="_blank" style="color:var(--accent); font-size:13px;">${escapeHtml(detail.externalLink)} ↗</a></p>` : ''}
-        <p class="section-label">Contenuto</p>
-        <div style="white-space:pre-wrap; font-size:13px; line-height:1.6; max-height:280px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">${detail.content ? escapeHtml(detail.content) : '<span class="field-hint">Nessun testo incollato (solo allegato).</span>'}</div>
-        <p class="section-label" style="margin-top:16px;">Allegati</p>
+        ${detail.description ? `<div class="modal-desc">${escapeHtml(detail.description)}</div>` : ''}
+        ${detail.externalLink ? `<a class="modal-link" href="${escapeHtml(detail.externalLink)}" target="_blank" rel="noopener">${escapeHtml(detail.externalLink)} ↗</a>` : ''}
+        <div class="modal-section-lbl">Contenuto</div>
+        <div class="modal-pre">${detail.content ? escapeHtml(detail.content) : 'Nessun testo incollato (solo allegato).'}</div>
+        <div class="modal-section-lbl">Allegati</div>
         ${attachmentsHtml}
       `,
       footerButtons: [
@@ -108,7 +103,7 @@ async function previewFlow(revisionId) {
       ]
     });
   } catch (e) {
-    modal.open({ title: 'Errore', bodyHtml: `<p style="color:var(--danger)">${escapeHtml(e.message)}</p>`, footerButtons: [{ label: 'Chiudi', className: 'btn-ghost', onClick: () => modal.close() }] });
+    modal.open({ title: 'Errore', bodyHtml: `<div class="modal-desc" style="color:var(--red)">${escapeHtml(e.message)}</div>`, footerButtons: [{ label: 'Chiudi', className: 'btn-ghost', onClick: () => modal.close() }] });
   }
 }
 
@@ -116,15 +111,13 @@ function approveFlow(revisionId) {
   modal.open({
     title: 'Approva contenuto',
     bodyHtml: `
-      <div class="field">
-        <label>Validità certificazione (mesi)</label>
-        <input class="input" id="approve-validity" type="number" value="12" min="1">
-      </div>
-      <div class="field">
-        <label>% punti sulla certificazione (100 = prima certificazione)</label>
-        <input class="input" id="approve-pct" type="number" value="100" min="0" max="100">
-        <p class="field-hint">Percentuale dei punti assegnati all'autore rispetto a una prima certificazione piena: usa un valore più basso per revisioni minori o correzioni, 100 per un contenuto nuovo o sostanzialmente riscritto.</p>
-      </div>`,
+      <label class="status-validity">Validità certificazione (mesi)
+        <input type="number" id="approve-validity" value="12" min="1">
+      </label>
+      <label class="status-validity">% punti sulla certificazione
+        <input type="number" id="approve-pct" value="100" min="0" max="100">
+      </label>
+      <div class="modal-empty">Percentuale dei punti assegnati all'autore rispetto a una prima certificazione piena: usa un valore più basso per revisioni minori o correzioni, 100 per un contenuto nuovo o sostanzialmente riscritto.</div>`,
     footerButtons: [
       { label: 'Annulla', className: 'btn-ghost', onClick: () => modal.close() },
       { label: 'Approva', className: 'btn-primary', onClick: async () => {
@@ -132,7 +125,7 @@ function approveFlow(revisionId) {
         const pointsPct = Number(modal.query('#approve-pct').value);
         try {
           await api.reviewRevision({ revisionId, approve: true, validityMonths, pointsPct });
-          toasts.show('Approvato', 'success');
+          toasts.show('Asset approvato e pubblicato', 'success');
           modal.close();
           loadQueue();
         } catch (e) { toasts.show(e.message, 'error'); }
@@ -141,10 +134,12 @@ function approveFlow(revisionId) {
   });
 }
 
+// Il mockup rifiuta con un click secco; qui il rifiuto blocca la
+// pubblicazione di un contenuto altrui, quindi la conferma resta.
 function rejectFlow(revisionId) {
   modal.open({
     title: 'Rifiutare questo contenuto?',
-    bodyHtml: `<p style="color:var(--text-secondary); font-size:13.5px; margin:0;">La revisione verrà segnata come rifiutata. Se era la prima proposta per questo asset, resterà non pubblicato.</p>`,
+    bodyHtml: '<div class="modal-desc">La revisione verrà segnata come rifiutata. Se era la prima proposta per questo asset, resterà non pubblicato.</div>',
     variant: 'danger',
     footerButtons: [
       { label: 'Annulla', className: 'btn-ghost', onClick: () => modal.close() },
@@ -152,7 +147,7 @@ function rejectFlow(revisionId) {
         modal.close();
         try {
           await api.reviewRevision({ revisionId, approve: false });
-          toasts.show('Contenuto rifiutato', 'success');
+          toasts.show('Asset rifiutato', 'success');
           loadQueue();
         } catch (e) { toasts.show(e.message, 'error'); }
       } }

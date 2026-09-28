@@ -1,2 +1,176 @@
 /* chat — restyling da doc/FrontEnd/billy_final_nonfinal.html.
-   Caricato DOPO main.css: le regole qui vincono sulle vecchie. */
+   Caricato DOPO main.css: le regole qui vincono sulle vecchie.
+
+   Le regole marcate "mockup" sono trascritte alla lettera dal sorgente
+   (righe 92-128). Dove il nostro DOM o le nostre funzioni reali (stream,
+   passi dell'agente, citazioni multiple, markdown) non hanno equivalente
+   nel mockup, la differenza sta in un blocco "adattamento" commentato. */
+
+/* ══════════════════════════════════════════════════════════════ CHAT ══ */
+
+/* Adattamento. Nel mockup la schermata e' .screen.vis{display:flex;
+   flex-direction:column} dentro un .pane che scrolla. Qui la vista chat
+   e' l'unica che NON deve scrollare in blocco: la barra di input resta in
+   basso e a scorrere e' solo .chat-body. Da cui height:100% + min-height:0
+   (senza, il figlio in overflow sfonda il contenitore flex). */
+#view-chat.active{display:flex;flex-direction:column;height:100%;min-height:0}
+/* min-height:0 su tutta la catena: in un contenitore flex in colonna il
+   default e' min-height:auto, che impedisce all'area messaggi di
+   restringersi sotto il suo contenuto — cioe' di scrollare. */
+.chat-wrap,.chat-body{min-height:0}
+.chat-input-wrap{flex-shrink:0}
+
+/* Adattamento: nel mockup questa riga e' un <div> con stile inline
+   (riga 307). Valori trascritti, spostati in una classe. */
+.chat-topbar{display:flex;align-items:center;justify-content:flex-end;padding:12px 20px 0;flex-shrink:0}
+
+/* mockup */
+.chat-wrap{flex:1;display:flex;flex-direction:column}
+.chat-body{flex:1;padding:0 20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;scrollbar-width:none}
+.chat-body::-webkit-scrollbar{display:none}
+.chat-hero{display:flex;flex-direction:column;padding:28px 0 20px;gap:14px}
+.hero-greeting{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(167,139,250,.7)}
+.hero-greeting span{width:4px;height:4px;border-radius:50%;background:#a78bfa}
+.hero-h{font-size:30px;font-weight:800;color:var(--t1);letter-spacing:-1px;line-height:1.15}
+.hero-h em{font-style:normal;background:linear-gradient(90deg,#a78bfa,#7c5ff5,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-s{font-size:13px;color:var(--t3);line-height:1.65;max-width:340px}
+.pills-scroll{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:rgba(120,87,255,.08);border:1px solid rgba(120,87,255,.2);color:rgba(167,139,250,.85);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap}
+.pill:hover{background:rgba(120,87,255,.18);border-color:rgba(120,87,255,.45);color:#c4b5fd;transform:translateY(-1px)}
+.pill svg{flex-shrink:0;opacity:.8}
+.msg{display:flex;gap:10px;align-items:flex-end}
+.msg.user{flex-direction:row-reverse}
+.msg-av-img{width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center top;flex-shrink:0;border:1.5px solid rgba(120,87,255,.3);background:var(--s2)}
+.msg-av-u{width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,#3b1fa8,#7c5ff5);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.bubble-wrap{display:flex;flex-direction:column;gap:4px;max-width:74%}
+.msg.user .bubble-wrap{align-items:flex-end}
+.msg-bub{padding:11px 16px;font-size:13.5px;line-height:1.6;color:var(--t1)}
+.msg-bub.b{background:rgba(255,255,255,.04);border:1px solid rgba(120,87,255,.12);border-radius:4px 18px 18px 18px}
+.msg-bub.u{background:linear-gradient(135deg,#3b1fa8,#6d45e8);border:none;border-radius:18px 18px 4px 18px;color:#fff}
+.msg-src{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(74,222,128,.7);padding:0 4px}
+.msg-time{font-size:10px;color:rgba(240,240,248,.15);padding:0 4px}
+.typing{display:flex;align-items:center;gap:5px;padding:11px 16px}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(120,87,255,.7);animation:pulse .9s infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,60%,100%{transform:scale(1);opacity:.35}30%{transform:scale(1.4);opacity:1}}
+.chat-input-wrap{padding:12px 16px;border-top:1px solid rgba(120,87,255,.08)}
+.chat-input-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(120,87,255,.15);border-radius:16px;padding:10px 10px 10px 18px;transition:.2s}
+.chat-input-row:focus-within{border-color:rgba(120,87,255,.45);background:rgba(120,87,255,.05)}
+.chat-input-row input{flex:1;background:transparent;border:none;outline:none;font-size:13.5px;color:var(--t1);font-family:inherit}
+.chat-input-row input::placeholder{color:rgba(240,240,248,.18)}
+.send-btn{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#4f35b8,#7c5ff5);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:.15s}
+.send-btn:hover{transform:scale(1.06)}
+
+/* Adattamento — @keyframes pulse.
+   Il nome e' quello del mockup e questo file e' caricato dopo main.css,
+   quindi questa definizione sostituisce ovunque la vecchia "pulse" (usata
+   anche dal pallino del passo in corso dell'agente). E' voluto: sono
+   entrambe pulsazioni di un pallino e averne una sola evita che le due
+   animazioni della stessa schermata vadano a ritmi diversi. */
+
+/* Adattamento — input multiriga.
+   Il mockup ha un <input> monoriga. Qui serve una <textarea>: la chat
+   accetta domande lunghe, cresce in altezza (chat-view.js) e Shift+Enter
+   manda a capo. Stesse dichiarazioni dell'input del mockup, piu' quelle
+   che solo una textarea richiede. */
+.chat-input-row textarea{flex:1;background:transparent;border:none;outline:none;font-size:13.5px;color:var(--t1);font-family:inherit}
+.chat-input-row textarea::placeholder{color:rgba(240,240,248,.18)}
+.chat-input-row textarea{resize:none;max-height:160px;padding:0;margin:0;line-height:1.6;overflow-y:auto;scrollbar-width:none}
+.chat-input-row textarea::-webkit-scrollbar{display:none}
+
+/* Adattamento — wrapper dei messaggi.
+   Nel mockup i messaggi sono figli diretti di .chat-body, che li spazia
+   con gap:16px. Qui stanno in #chat-thread, che serve a distinguere
+   "vuoto" da "conversazione" e a svuotare tutto con un reset: il wrapper
+   eredita la spaziatura e azzera il layout che aveva in main.css. */
+.chat-thread{display:flex;flex-direction:column;gap:16px;max-width:none;margin:0;padding:0}
+
+/* Adattamento — markdown dentro la bolla.
+   Le risposte di Billy sono markdown renderizzato, il mockup ha solo
+   testo semplice: la bolla tiene la classe .chat-msg-text cosi' liste,
+   codice, citazioni e grassetti restano quelli di main.css. Manca solo
+   il margine di troppo sull'ultimo blocco, che nel mockup non esiste. */
+.msg-bub > :first-child{margin-top:0}
+.msg-bub > :last-child{margin-bottom:0}
+.msg-bub.chat-msg-text{font-size:13.5px;line-height:1.6}
+
+/* Adattamento — bolla senza padding.
+   Nel mockup il contenitore dei puntini azzera il padding della bolla con
+   uno stile inline; qui e' una classe, che il componente toglie appena
+   arriva il primo testo. */
+.msg-bub.flush{padding:0}
+
+/* Adattamento — passi dell'agente.
+   Billy e' un agente: prima di rispondere puo' cercare nei documenti o
+   caricare una skill. Il mockup non ha nulla del genere (risponde con un
+   setTimeout), quindi i passi restano quelli di main.css; qui si sistema
+   solo la loro convivenza con i puntini dentro la stessa bolla, dove il
+   padding ce lo mette gia' la bolla. */
+.chat-steps + .typing,.chat-steps + .chat-preview{padding-left:0;padding-right:0}
+.chat-steps + .typing{padding-top:6px;padding-bottom:0}
+
+/* Adattamento — azione "Copia".
+   In main.css compariva su :hover di .chat-msg, classe che il componente
+   non porta piu'. Vive nella riga dell'orario invece che su una riga
+   propria: da sola occuperebbe 20px vuoti sotto ogni risposta, visto che
+   e' invisibile finche' non si passa sopra il messaggio. */
+.msg-foot{display:flex;align-items:center;gap:6px;padding:0 4px}
+.msg.user .msg-foot{flex-direction:row-reverse}
+.msg .chat-msg-actions{margin-top:0;display:inline-flex}
+.msg.billy:hover .chat-copy-btn,.msg.billy:focus-within .chat-copy-btn{opacity:1}
+.msg-time{padding:0}
+
+/* Adattamento — citazioni.
+   Il mockup ha una riga sola, verde, "Fonte — Certificato". Qui le fonti
+   sono piu' di una, cliccabili (aprono l'asset nel catalogo) e portano la
+   percentuale di rilevanza restituita dal backend: stessa riga verde del
+   mockup, ripetuta, resa interattiva, e declinata sui livelli di
+   certificazione che il mockup non conosce (il verde da solo darebbe per
+   certificato anche cio' che e' scaduto o ritirato). */
+.msg-srcs{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.msg-src{border:none;background:none;text-align:left;cursor:pointer;border-radius:6px;transition:.12s;max-width:100%}
+.msg-src:hover{color:rgba(74,222,128,1)}
+.msg-src:focus-visible{outline:2px solid var(--v2);outline-offset:2px}
+.msg-src svg{flex-shrink:0}
+.msg-src-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-src-cert{flex-shrink:0;opacity:.8}
+.msg-src.level-certifiedOutdated{color:rgba(251,191,36,.7)}
+.msg-src.level-certifiedOutdated:hover{color:rgba(251,191,36,1)}
+.msg-src.level-community{color:rgba(240,240,248,.4)}
+.msg-src.level-community:hover{color:rgba(240,240,248,.75)}
+.msg-src.level-deprecated{color:rgba(248,113,113,.7)}
+.msg-src.level-deprecated:hover{color:rgba(248,113,113,1)}
+.msg-src .similarity-pill{background:rgba(255,255,255,.04);color:inherit;opacity:.8;font-size:10px}
+
+/* Adattamento — errore.
+   Non previsto dal mockup (che non ha rete): stessa bolla, colore di
+   stato. */
+.msg-bub.err{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:var(--red)}
+
+/* Adattamento — separatore fra conversazioni.
+   Lo storico a schermo e' persistente ma al modello si manda solo la
+   conversazione in corso: il separatore lo dice. Il mockup non ha
+   storico, qui serve solo togliere i margini che in main.css facevano il
+   lavoro che ora fa il gap di .chat-thread. */
+.chat-thread .chat-conv-sep{margin:6px 0}
+
+/* Adattamento — margine in fondo.
+   Ultimo messaggio a filo della barra di input: un po' di respiro. */
+.chat-body > .chat-thread:last-child{padding-bottom:12px}
+
+@media (prefers-reduced-motion: reduce){
+  .dot{animation:none}
+  .pill:hover,.send-btn:hover{transform:none}
+}
+
+/* Adattamento — responsive.
+   Sotto i 900px la sidebar diventa un drawer e l'hamburger di main.css
+   sta fisso in alto a sinistra: la barra superiore della chat gli lascia
+   il posto. Le bolle al 74% su schermo stretto lasciano una colonna
+   inutilizzabile, qui vale la pena allargarle. */
+@media (max-width: 900px){
+  .chat-topbar{padding-left:60px}
+  .bubble-wrap{max-width:86%}
+  .hero-h{font-size:26px}
+}

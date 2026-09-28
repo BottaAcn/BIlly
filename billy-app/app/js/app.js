@@ -16,8 +16,10 @@ function showView(name) {
   views.forEach((v) => {
     document.getElementById(`view-${v}`).classList.toggle('active', v === name);
   });
+  // .on e non .active: nel mockup la voce selezionata e' .ni.on ed e'
+  // quella classe a far crescere la barretta viola a sinistra.
   document.querySelectorAll('.nav-item').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.view === name);
+    btn.classList.toggle('on', btn.dataset.view === name);
   });
   if (name === 'catalog') loadCatalog();
   if (name === 'queue') loadQueue();
@@ -72,6 +74,35 @@ sidebarToggle.addEventListener('click', () => {
   sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
 });
 sidebarBackdrop.addEventListener('click', closeSidebar);
+
+// Sidebar collassabile (200px ↔ 52px). È una preferenza di lavoro, non
+// uno stato della sessione: chi lavora con la barra stretta la ritrova
+// stretta anche domani, quindi localStorage e non sessionStorage.
+const COLLAPSED_KEY = 'billy.sidebar.collapsed';
+const collapseBtn = document.getElementById('side-collapse');
+
+function applyCollapsed(collapsed) {
+  sidebar.classList.toggle('collapsed', collapsed);
+  collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+  const label = collapsed ? 'Espandi la barra laterale' : 'Comprimi la barra laterale';
+  collapseBtn.setAttribute('aria-label', label);
+  collapseBtn.title = label;
+}
+
+// Ripristino della preferenza. La transizione va spenta per un frame:
+// altrimenti chi tiene la barra stretta la vede "richiudersi" da 200 a
+// 52px ad ogni caricamento della pagina.
+// Storage negato (iframe sandboxed, cookie bloccati): la barra parte
+// aperta, non è un errore da propagare.
+sidebar.classList.add('no-anim');
+try { applyCollapsed(localStorage.getItem(COLLAPSED_KEY) === '1'); } catch (e) { /* ignorato */ }
+requestAnimationFrame(() => sidebar.classList.remove('no-anim'));
+
+collapseBtn.addEventListener('click', () => {
+  const collapsed = !sidebar.classList.contains('collapsed');
+  applyCollapsed(collapsed);
+  try { localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* ignorato */ }
+});
 
 // Logo neon in sidebar: se il file non c'è (o non è ancora stato fornito)
 // si mostra il nome testuale al suo posto.

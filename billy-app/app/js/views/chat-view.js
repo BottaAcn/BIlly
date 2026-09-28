@@ -2,11 +2,18 @@ import { askBillyStream } from '../api.js';
 import '../components/billy-chat-message.js';
 
 const chatInput = document.getElementById('chat-input');
+const chatBody = document.getElementById('chat-body');
 const chatThread = document.getElementById('chat-thread');
 const chatEmpty = document.getElementById('chat-empty');
 const chatSend = document.getElementById('chat-send');
 const chatReset = document.getElementById('chat-reset');
 const suggestedQuestions = document.getElementById('suggested-questions');
+
+// A scorrere e' il contenitore (.chat-body), non la lista dei messaggi:
+// la barra di input resta ferma in basso e fuori dall'area scrollabile.
+function scrollToBottom() {
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
 
 // Persistenza lato client su localStorage: chiudere la scheda (o il
 // browser) non deve cancellare le conversazioni, si ritrovano il giorno
@@ -86,12 +93,14 @@ let history = loadHistory();
 
 function appendMessage(role) {
   if (chatEmpty.style.display !== 'none') chatEmpty.style.display = 'none';
-  chatThread.style.display = 'block';
+  // flex e non block: i messaggi sono impilati con lo stesso gap del
+  // mockup (16px), dato dal contenitore e non dai margini delle bolle.
+  chatThread.style.display = 'flex';
 
   const msg = document.createElement('billy-chat-message');
   msg.setAttribute('role', role);
   chatThread.appendChild(msg);
-  chatThread.scrollTop = chatThread.scrollHeight;
+  scrollToBottom();
   return msg;
 }
 
@@ -172,7 +181,7 @@ async function sendChatMessage(prefilled) {
         preview += event.text;
         billyMsg.setPreview(preview);
       }
-      chatThread.scrollTop = chatThread.scrollHeight;
+      scrollToBottom();
     });
     billyMsg.setAnswer(data.answer, data.sources, steps);
     history.push({ conv: currentConversationId, role: 'billy', kind: 'answer', markdown: data.answer, sources: data.sources, steps });
@@ -181,7 +190,7 @@ async function sendChatMessage(prefilled) {
     history.push({ conv: currentConversationId, role: 'billy', kind: 'error', message: e.message });
   }
   saveHistory();
-  chatThread.scrollTop = chatThread.scrollHeight;
+  scrollToBottom();
 }
 
 // Precarica l'input senza inviare, come fanno le chip suggerite: l'utente
@@ -216,10 +225,12 @@ export function initChatView() {
   chatReset.addEventListener('click', resetChat);
 
   // Le chip precompilano l'input, non inviano da sole: l'utente resta
-  // libero di modificare la domanda prima di mandarla.
+  // libero di modificare la domanda prima di mandarla. La pill mostra
+  // un'etichetta corta (il mockup le vuole su una riga sola, senza
+  // andare a capo), la domanda vera sta in data-question.
   suggestedQuestions.querySelectorAll('.suggested-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      chatInput.value = chip.textContent;
+      chatInput.value = chip.dataset.question || chip.textContent.trim();
       chatInput.dispatchEvent(new Event('input'));
       chatInput.focus();
     });

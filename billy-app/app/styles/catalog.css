@@ -1,2 +1,175 @@
 /* catalog — restyling da doc/FrontEnd/billy_final_nonfinal.html.
-   Caricato DOPO main.css: le regole qui vincono sulle vecchie. */
+   Caricato DOPO main.css: le regole qui vincono sulle vecchie.
+
+   Le regole sono trascritte alla lettera dal mockup (stessi px, stessi rgba,
+   stesse durate): i nomi corti delle classi (.ccard, .ftag, .qrow) sono
+   quelli del sorgente proprio per poter copiare senza reinterpretare.
+   Qui dentro vivono anche modale e toast, che nel mockup stanno nello stesso
+   <style> monolitico e che da noi sono componenti condivisi fra catalogo e
+   coda: questa area e' l'unica che possiede un file CSS dove metterli. */
+
+/* ══ TOOLBAR, FILTRI, ORDINAMENTO ══ (mockup 143-153) */
+.cat-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.cat-search{width:100%;background:var(--s2);border:.5px solid var(--bdr2);border-radius:9px;padding:9px 13px;font-size:13px;color:var(--t1);outline:none;font-family:inherit;transition:.12s}
+.cat-search::placeholder{color:var(--t3)}
+.cat-search:focus{border-color:var(--bdr3)}
+.cat-filters{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap}
+.ftag{padding:5px 13px;border-radius:20px;font-size:12px;background:var(--s2);border:.5px solid var(--bdr);color:var(--t3);cursor:pointer;transition:.12s;white-space:nowrap}
+.ftag.on{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.sort-row{display:flex;flex-direction:row;gap:6px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.sort-row span{font-size:11.5px;color:var(--t3)}
+.srt{padding:5px 12px;border-radius:20px;font-size:11.5px;background:var(--s2);border:.5px solid var(--bdr);color:var(--t3);cursor:pointer;transition:.12s;white-space:nowrap}
+.srt.on{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+
+/* Nel mockup .ftag/.srt sono <div>: qui sono <button> per restare
+   raggiungibili da tastiera, e questo reset serve solo a far sembrare il
+   bottone esattamente il div del mockup (nessun valore nuovo). */
+button.ftag,button.srt{font-family:inherit;line-height:normal;text-align:center;appearance:none;-webkit-appearance:none}
+button.ftag:focus-visible,button.srt:focus-visible{outline:2px solid var(--bdr3);outline-offset:2px}
+
+/* Toggle "ricerca approfondita" e "Aggiorna": non esistono nel mockup ma
+   sono funzionalita' reali che non si buttano via. Stanno sulla riga della
+   ricerca, con la tipografia delle pill per non sembrare un innesto. */
+.cat-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cat-actions .toggle-deep{font-size:11.5px;color:var(--t3);margin:0}
+.cat-actions .ftag{margin-left:auto}
+
+/* ══ GRIGLIA E CARD ══ (mockup 154-183) */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.ccard{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:16px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px}
+.ccard:hover{border-color:var(--bdr3);background:var(--s3);transform:translateY(-2px)}
+.ccard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ccard-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:.5px solid rgba(255,255,255,.06)}
+.ico-doc{background:rgba(120,87,255,.15)}
+.ico-skill{background:rgba(74,222,128,.12)}
+.ico-tool{background:rgba(251,191,36,.12)}
+.ico-app{background:rgba(99,179,237,.12)}
+.ico-int{background:rgba(248,113,113,.12)}
+.ico-alt{background:rgba(240,240,248,.06)}
+.cert-badge{font-size:10.5px;font-weight:500;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.cb-ok{background:rgba(74,222,128,.1);color:#4ade80;border:.5px solid rgba(74,222,128,.25)}
+.cb-exp{background:rgba(248,113,113,.1);color:var(--red);border:.5px solid rgba(248,113,113,.25)}
+.cb-com{background:rgba(251,191,36,.1);color:var(--yellow);border:.5px solid rgba(251,191,36,.25)}
+.cb-ret{background:rgba(240,240,248,.06);color:var(--t3);border:.5px solid var(--bdr)}
+/* Nel mockup la .cert-badge e' un <div>; qui e' il custom element
+   <billy-badge>, che senza questo e' inline e non terrebbe il padding
+   verticale fuori da un contenitore flex. */
+billy-badge.cert-badge{display:inline-flex;align-items:center}
+.ccard-name{font-size:13.5px;font-weight:500;color:var(--t1);line-height:1.3}
+.ccard-type{font-size:11.5px;color:var(--t3)}
+.ccard-bar{height:3px;border-radius:2px;background:var(--s3);overflow:hidden}
+.ccard-bar-fill{height:100%;border-radius:2px}
+.bar-ok{background:#4ade80}
+.bar-exp{background:var(--red)}
+.bar-com{background:var(--yellow)}
+.bar-ret{background:var(--t3)}
+.ccard-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+.ccard-date{font-size:11px;color:var(--t3);white-space:nowrap}
+.ccard-author{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);white-space:nowrap}
+.ccard-av{width:16px;height:16px;border-radius:50%;background:var(--v4);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;color:var(--v2);flex-shrink:0}
+.skel{background:var(--s3);border-radius:6px;animation:skel 1.2s infinite alternate}
+@keyframes skel{from{opacity:.4}to{opacity:.9}}
+
+/* Percentuale di rilevanza (solo in ricerca approfondita) e CTA "usa questa
+   skill": due cose che il mockup non ha. Riprendono i valori delle pill
+   gia' definite sopra invece di introdurre una terza scala tipografica. */
+.ccard-sim{font-size:10.5px;font-weight:500;padding:3px 8px;border-radius:5px;background:var(--v4);color:var(--v2);border:.5px solid var(--bdr3);white-space:nowrap}
+.ccard-use{font-size:11.5px;padding:5px 10px;border-radius:7px;border:.5px solid var(--bdr2);background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;transition:.12s;width:100%}
+.ccard-use:hover{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.ccard-empty{color:var(--t3);font-size:13px;padding:16px 0;grid-column:1/-1}
+
+/* ══ CODA DI REVISIONE ══ (mockup 212-223) */
+.qlist{display:flex;flex-direction:column;gap:8px}
+.qrow{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:.15s}
+.qrow:hover{border-color:var(--bdr2);background:var(--s3)}
+.qico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qico.n{background:rgba(120,87,255,.1);color:var(--v2)}
+.qico.e{background:rgba(248,113,113,.08);color:var(--red)}
+.qtxt{flex:1}
+.qname{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px}
+.qmeta{font-size:11px;color:var(--t3)}
+.qbtns{display:flex;gap:6px}
+.qbtn{font-size:11.5px;padding:5px 10px;border-radius:7px;border:.5px solid var(--bdr2);background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;transition:.12s}
+.qbtn:hover,.qbtn.ok{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+
+/* Il mockup ha una lista piatta di due elementi finti; il backend invece
+   distingue revisioni nuove da rinnovi scaduti (regole diverse: un rinnovo
+   non si rifiuta). L'intestazione di gruppo usa la tipografia di .qmeta. */
+.qgroup{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.qgroup-title{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.qempty{text-align:center;padding:32px;color:var(--t3);font-size:13px}
+
+/* ══ TOAST ══ (mockup 224-225) */
+/* Il mockup ha un unico toast fisso in basso al centro; il nostro
+   <billy-toast-container> e' un singleton che puo' mostrarne piu' di uno,
+   quindi la posizione fissa si sposta sul container e il .toast conserva
+   verbatim tutto il resto (colori, padding, easing, durata). */
+.toast-container{position:fixed;bottom:20px;left:50%;right:auto;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px}
+/* animation/box-shadow/max-width azzerati: sono della vecchia regola in
+   main.css e qui darebbero un doppio movimento (animazione + transizione)
+   e un box che taglia il testo, cose che il mockup non ha. */
+.toast{position:static;transform:translateY(60px);opacity:0;background:var(--s3);border:.5px solid var(--bdr2);border-radius:10px;padding:9px 16px;font-size:12.5px;color:var(--t1);display:flex;align-items:center;gap:7px;transition:.25s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;animation:none;box-shadow:none;max-width:none}
+.toast.show{transform:translateY(0);opacity:1}
+/* Il mockup mostra solo messaggi corti ("Asset eliminato") e tiene il
+   nowrap; i nostri toast di errore riportano il messaggio del backend, che
+   su una riga sola uscirebbe dallo schermo. Solo quelli vanno a capo. */
+.toast.error{white-space:normal;max-width:min(92vw,520px);text-align:left}
+
+/* ══ MODALE ══ (mockup 227-253) */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.vis{opacity:1;pointer-events:all}
+.modal{background:#16112a;border:1px solid rgba(120,87,255,.2);border-radius:16px;width:460px;max-width:90vw;padding:0;overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .2s}
+.modal-overlay.vis .modal{transform:translateY(0) scale(1)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px}
+.modal-title{font-size:16px;font-weight:600;color:var(--t1)}
+.modal-close{width:28px;height:28px;border-radius:8px;background:transparent;border:none;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center;transition:.12s}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--t1)}
+.modal-tags{display:flex;align-items:center;gap:8px;padding:0 22px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.modal-cert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.modal-cert-lbl{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px}
+.modal-type-lbl{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3)}
+.modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.modal-desc{font-size:13.5px;color:var(--t3);line-height:1.6}
+.modal-fields{display:flex;flex-direction:column;gap:8px}
+.modal-field{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.modal-field-lbl{color:var(--t3)}
+.modal-field-val{color:var(--t1);font-weight:500}
+.modal-section-lbl{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:4px}
+.modal-empty{font-size:13px;color:var(--t3)}
+.modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid rgba(255,255,255,.06)}
+
+/* Nel mockup i bottoni del footer sono .modal-btn-del/-sec/-pri; qui il
+   componente <billy-modal> riceve gia' className 'btn-danger'/'btn-ghost'/
+   'btn-primary' da tutte le viste (anche quelle non di quest'area), quindi
+   si rimappano i valori del mockup su quei nomi invece di rinominare
+   un'API condivisa. I valori sono verbatim. */
+.modal-footer .btn-danger{padding:9px 18px;border-radius:9px;background:transparent;border:1px solid rgba(248,113,113,.3);color:var(--red);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.12s}
+.modal-footer .btn-danger:hover{background:rgba(248,113,113,.08)}
+.modal-footer .btn-ghost{padding:9px 18px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.12s}
+.modal-footer .btn-ghost:hover{background:rgba(255,255,255,.09)}
+.modal-footer .btn-primary{padding:9px 20px;border-radius:9px;background:var(--v);border:none;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.12s}
+.modal-footer .btn-primary:hover{background:var(--v2)}
+
+/* Pannello "cambia stato" inline: il mockup lo pilota in JS
+   (toggleStatusPanel, .status-opt, .selected) ma non ne contiene ne' markup
+   ne' CSS. Ricostruito con i valori gia' presenti altrove nel file — stesso
+   radius/padding/tipografia delle pill .qbtn e degli stati .cb-*. */
+.status-panel{display:flex;flex-direction:column;gap:6px;padding-top:2px}
+.status-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;border:.5px solid var(--bdr);background:var(--s2);color:var(--t2);font-size:12.5px;font-family:inherit;cursor:pointer;transition:.12s;text-align:left;width:100%}
+.status-opt:hover{background:var(--s3);border-color:var(--bdr2)}
+.status-opt.selected{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.status-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-validity{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--t3);padding:2px 2px 0}
+.status-validity input{width:72px;background:var(--s2);border:.5px solid var(--bdr2);border-radius:9px;padding:6px 10px;font-size:12.5px;color:var(--t1);outline:none;font-family:inherit}
+.status-validity input:focus{border-color:var(--bdr3)}
+
+/* Allegati veri con download e contenuto della revisione: il mockup si
+   ferma a "Nessun allegato.", noi abbiamo i file e l'anteprima. */
+.modal-att{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--s2);border:.5px solid var(--bdr);border-radius:9px;padding:9px 12px}
+.modal-att-name{font-size:12.5px;color:var(--t1)}
+.modal-att-meta{font-size:11px;color:var(--t3);margin-top:2px}
+.modal-att-dl{font-size:11.5px;padding:5px 10px;border-radius:7px;border:.5px solid var(--bdr2);background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;transition:.12s;text-decoration:none;white-space:nowrap}
+.modal-att-dl:hover{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.modal-link{font-size:13px;color:var(--v2);text-decoration:none;word-break:break-all}
+.modal-link:hover{text-decoration:underline}
+.modal-pre{white-space:pre-wrap;font-size:13px;line-height:1.6;max-height:280px;overflow-y:auto;background:var(--bg);border:.5px solid var(--bdr);border-radius:9px;padding:12px;color:var(--t2)}

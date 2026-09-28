@@ -1,2 +1,67 @@
 /* upload — restyling da doc/FrontEnd/billy_final_nonfinal.html.
    Caricato DOPO main.css: le regole qui vincono sulle vecchie. */
+
+/* ---------------------------------------------------------------------
+   Wizard — trascrizione VERBATIM del mockup, righe 184-211.
+   Valori letterali e token corti (--v, --t1, --s2, --bdr) sono quelli del
+   sorgente: non vanno "normalizzati" in alias semantici, altrimenti la
+   resa diverge dal mockup.
+   --------------------------------------------------------------------- */
+.wizard-steps{display:flex;align-items:center;margin-bottom:24px}
+.wstep{display:flex;align-items:center;gap:8px}
+.wstep-num{width:24px;height:24px;border-radius:50%;border:.5px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--t3);transition:.2s}
+.wstep.done .wstep-num{background:var(--v);border-color:var(--v);color:#fff}
+.wstep.active .wstep-num{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.wstep-label{font-size:12px;color:var(--t3)}
+.wstep.active .wstep-label{color:var(--t1)}
+.wstep.done .wstep-label{color:var(--v2)}
+.wline{flex:1;height:.5px;background:var(--bdr);margin:0 8px;min-width:16px}
+.wline.done{background:var(--v)}
+.wform{display:none}
+.wform.vis{display:flex;flex-direction:column;gap:13px}
+.wfl{display:flex;flex-direction:column;gap:5px}
+.wfl label{font-size:11.5px;color:var(--t2);font-weight:500}
+.wfl input,.wfl select,.wfl textarea{background:var(--s2);border:.5px solid var(--bdr2);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--t1);outline:none;transition:.15s;font-family:inherit}
+.wfl input:focus,.wfl select:focus,.wfl textarea:focus{border-color:var(--bdr3)}
+.wfl textarea{resize:vertical;min-height:80px}
+.wbtns{display:flex;gap:8px}
+.wbtn-next{padding:9px 20px;border-radius:9px;background:var(--v);border:none;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.12s}
+.wbtn-next:hover{background:var(--v2)}
+.wbtn-back{padding:9px 14px;border-radius:9px;background:transparent;border:.5px solid var(--bdr2);color:var(--t2);font-size:13px;cursor:pointer;font-family:inherit}
+.wbtn-back:hover{background:var(--s3)}
+.dz{border:1px dashed rgba(120,87,255,.28);border-radius:10px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--t3);font-size:12.5px;cursor:pointer;transition:.15s}
+.dz:hover{border-color:var(--bdr3);background:var(--v4);color:var(--t2)}
+.ftabs{display:flex;gap:6px;margin-bottom:8px}
+.ftab{padding:5px 12px;border-radius:20px;font-size:12px;background:var(--s2);border:.5px solid var(--bdr);color:var(--t3);cursor:pointer;transition:.12s}
+.ftab.on{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.werr{font-size:12px;color:var(--red);display:none}
+
+/* ---------------------------------------------------------------------
+   Riepilogo finale — stesse dichiarazioni degli style inline del mockup
+   (righe 389-393), estratte in classi solo perche' il riepilogo qui e'
+   generato da JS e ripetere 200 caratteri di style per riga lo rende
+   illeggibile. Nessun valore cambiato.
+   --------------------------------------------------------------------- */
+.wsum{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.wsum-h{font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.wsum-row{display:flex;justify-content:space-between;font-size:13px}
+.wsum-k{color:var(--t3)}
+.wsum-v{color:var(--t1)}
+.wsum-badge{color:var(--yellow);font-size:11.5px;background:rgba(251,191,36,.08);padding:2px 8px;border-radius:5px}
+
+/* Il riepilogo di una skill o di un'interfaccia contiene paragrafi interi:
+   su una sola riga flex verrebbero schiacciati contro l'etichetta. */
+.wsum-row.wsum-long{flex-direction:column;gap:4px}
+.wsum-row.wsum-long .wsum-v{white-space:pre-wrap}
+
+/* ---------------------------------------------------------------------
+   Stati che il mockup non ha perche' non fa upload vero.
+   --------------------------------------------------------------------- */
+/* Drag-and-drop reale e file gia' scelto: stessa resa di :hover, che nel
+   mockup e' l'unico stato "attivo" previsto per la dropzone. */
+.dz.dragover,.dz.has-file{border-color:var(--bdr3);background:var(--v4);color:var(--t2)}
+.wfl input:disabled,.wfl select:disabled,.wfl textarea:disabled{opacity:.5;cursor:not-allowed}
+.wbtn-next:disabled{opacity:.55;cursor:not-allowed}
+.wbtn-next:disabled:hover{background:var(--v)}
+/* Testo di aiuto sotto un campo: stessa scala della label, un gradino piu' basso. */
+.wfl-hint{font-size:11px;color:var(--t3)}

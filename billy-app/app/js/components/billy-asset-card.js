@@ -1,13 +1,16 @@
 import './billy-badge.js';
-import { escapeHtml, fmtSimilarity, TYPE_LABELS, TYPE_ICONS } from '../utils.js';
+import {
+  escapeHtml, fmtDate, fmtSimilarity, TYPE_LABELS, TYPE_ICO_CLASS,
+  typeIconSvg, certUi, computeCompleteness, completenessHint, authorOf, initialsOf
+} from '../utils.js';
 
-// <billy-asset-card> — card nella griglia del catalogo.
-// Proprietà: .asset = { ID, title, description, type, certificationLevel, _similarity? }
+// <billy-asset-card> — card nella griglia del catalogo (.ccard del mockup).
+// Proprietà: .asset = { ID, title, type, certificationLevel, createdAt, ... }
 // Eventi emessi (bubbles): 'open' { assetId } | 'use-skill' { assetId, title }
 // 'use-skill' esiste solo per type === 'skill': gli altri tipi non hanno
 // (ancora) un modello di delivery definito, quindi nessuna CTA.
-// role="button"/tabindex/keydown: è un <div> reso interattivo via JS, senza
-// questo non sarebbe raggiungibile né attivabile da tastiera.
+// role="button"/tabindex/keydown: è un custom element reso interattivo via
+// JS, senza questo non sarebbe raggiungibile né attivabile da tastiera.
 class BillyAssetCard extends HTMLElement {
   set asset(value) {
     this._asset = value;
@@ -15,7 +18,7 @@ class BillyAssetCard extends HTMLElement {
   }
 
   connectedCallback() {
-    this.classList.add('card');
+    this.classList.add('ccard');
     this.setAttribute('role', 'button');
     this.setAttribute('tabindex', '0');
     this.addEventListener('click', () => this.open());
@@ -46,22 +49,35 @@ class BillyAssetCard extends HTMLElement {
   render() {
     if (!this.isConnected || !this._asset) return;
     const a = this._asset;
+    const cert = certUi(a.certificationLevel);
+    const type = a.type || 'other';
+    // Gli allegati non sono nella lista (servirebbe una chiamata per card):
+    // la completezza qui è calcolata sui soli campi che il servizio manda.
+    const completeness = computeCompleteness(a);
+    const author = authorOf(a);
+
     this.setAttribute('aria-label', `Apri asset: ${a.title}`);
     this.innerHTML = `
-      <div class="card-top">
-        <div>
-          <p class="type-tag card-top-heading"><span class="type-icon">${TYPE_ICONS[a.type] || TYPE_ICONS.other}</span> ${TYPE_LABELS[a.type] || a.type || 'documento'}</p>
-          <p class="card-title">${escapeHtml(a.title)}</p>
-        </div>
+      <div class="ccard-top">
+        <div class="ccard-ico ${TYPE_ICO_CLASS[type] || 'ico-alt'}">${typeIconSvg(type)}</div>
+        ${a.certificationLevel ? `<billy-badge level="${escapeHtml(a.certificationLevel)}"></billy-badge>` : ''}
       </div>
-      <p class="card-desc">${escapeHtml(a.description) || 'Nessuna descrizione.'}</p>
-      <div class="card-footer">
-        <billy-badge level="${a.certificationLevel}"></billy-badge>
-        ${a._similarity != null ? `<span class="similarity-pill">${fmtSimilarity(a._similarity)}</span>` : ''}
-        ${a.type === 'skill' ? '<button type="button" class="btn btn-sm card-use-skill">Usa questa skill</button>' : ''}
+      <div>
+        <div class="ccard-name">${escapeHtml(a.title)}</div>
+        <div class="ccard-type">${TYPE_LABELS[type] || type}</div>
       </div>
+      ${completeness.criteria.length ? `
+      <div class="ccard-bar" title="${escapeHtml(completenessHint(completeness))}">
+        <div class="ccard-bar-fill ${cert.bar}" style="width:${completeness.pct}%"></div>
+      </div>` : ''}
+      <div class="ccard-meta">
+        <span class="ccard-date">${fmtDate(a.createdAt)}</span>
+        ${a._similarity != null ? `<span class="ccard-sim">${fmtSimilarity(a._similarity)}</span>` : ''}
+        ${author ? `<span class="ccard-author"><span class="ccard-av">${escapeHtml(initialsOf(author))}</span>${escapeHtml(author)}</span>` : ''}
+      </div>
+      ${type === 'skill' ? '<button type="button" class="ccard-use">Usa questa skill</button>' : ''}
     `;
-    const useBtn = this.querySelector('.card-use-skill');
+    const useBtn = this.querySelector('.ccard-use');
     if (useBtn) useBtn.addEventListener('click', (e) => this.useSkill(e));
   }
 }
