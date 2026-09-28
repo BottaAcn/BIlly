@@ -117,6 +117,27 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
   };
 
   action expireCertifications() returns { expiredCount: Integer };
+
+  // Solo lettura: il legame agente -> skill/application si scrive passando
+  // dal `content` della revisione (e quindi dal certificatore), mai da qui.
+  @readonly entity AgentCapability as projection on db.AgentCapability;
+
+  // Definizione risolta di un asset di tipo `agent` (prompt + capacità).
+  function getAgentDefinition(assetId: UUID) returns {
+    assetId            : UUID;
+    title              : String;
+    prompt             : LargeString;
+    certificationLevel : String;
+    skills             : array of { assetId : UUID; title : String; certificationLevel : String; };
+    applications       : array of { assetId : UUID; title : String; endpoint : String; certificationLevel : String; };
+    warnings           : array of String;
+  };
+
+  // Stato di lavoro fra turni. CRUD pieno: a scriverci è l'agente per conto
+  // dell'utente durante una pipeline multi-passo, non un certificatore.
+  // Non passa dalla revisione perché non è contenuto pubblicato: è il
+  // brutta copia di un singolo utente, con TTL (db/schema.cds).
+  entity WorkSession as projection on db.WorkSession;
 }
 
 // Fase 7 — espone CatalogService come server MCP (@cap-js/mcp), tool per

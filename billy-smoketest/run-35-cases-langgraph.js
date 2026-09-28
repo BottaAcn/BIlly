@@ -2,8 +2,11 @@
 // conversazione senza history, contro la replica LangGraph JS + gpt-5.5.
 // Stessa misura del 27/35: quali `loadSkill` vengono chiamate.
 // Classificazione: OK / KO / NO-SKILL / SPURIA.
+// Uso: node run-35-cases-langgraph.js            -> versione LangGraph
+//      node run-35-cases-langgraph.js handloop   -> controllo loop a mano, stesso modello
 import { writeFileSync } from 'fs';
-import { ask } from './billy-langgraph-agent.js';
+const VARIANT = process.argv[2] === 'handloop' ? 'handloop' : 'langgraph';
+const { ask } = await import(VARIANT === 'handloop' ? './billy-handloop-agent.js' : './billy-langgraph-agent.js');
 
 const S = {
   leva1: '84c09044-3ebb-45b2-b331-27a411d98a95',
@@ -114,12 +117,12 @@ await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
 }));
 
 results.sort((a, b) => a.n - b.n);
-writeFileSync('./results-35-langgraph.json', JSON.stringify(results, null, 2));
+writeFileSync(`./results-35-${VARIANT}.json`, JSON.stringify(results, null, 2));
 
 const tally = results.reduce((acc, r) => ((acc[r.esito] = (acc[r.esito] || 0) + 1), acc), {});
 const ok = tally.OK || 0;
 console.log('\n=============================');
-console.log(`PUNTEGGIO LANGGRAPH + gpt-5.5 : ${ok}/35   (baseline loop a mano + Claude: 27/35)`);
+console.log(`PUNTEGGIO ${VARIANT.toUpperCase()} + gpt-5.5 : ${ok}/35   (baseline loop a mano + Claude: 27/35)`);
 console.log('Ripartizione:', JSON.stringify(tally));
 console.log('\nDIFFERENZE RISPETTO ALLA BASELINE:');
 for (const r of results) {

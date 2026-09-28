@@ -19,8 +19,20 @@ modules:
     path: ./gen/srv
     parameters:
       buildpack: nodejs_buildpack
-      memory: 256MB
-      disk-quota: 1024MB
+      # Migrazione LangGraph — 256MB non bastano più. Al runtime residente
+      # di CAP + @sap-ai-sdk si aggiungono @langchain/core, @langchain/
+      # langgraph e @sap-ai-sdk/langchain (60-90MB di heap in più fra grafo,
+      # schemi zod e messaggi tenuti in memoria per turno): con 256MB il
+      # container va in OOM al primo avvio. 1GB e non 512MB perché il
+      # margine residuo a 512 (~100-150MB) verrebbe mangiato dai picchi già
+      # noti: estrazione testo/chunking di un upload (pdf-parse, officeparser,
+      # mammoth caricano il file intero in memoria, body_parser a 15mb) e più
+      # stream SSE concorrenti, ciascuno con la propria conversazione.
+      memory: 1024MB
+      # Il droplet cresce di conseguenza (node_modules con l'albero LangChain);
+      # 1024MB di disco lasciavano poco margine al buildpack per build cache
+      # + droplet. Il disco su CF non è una risorsa contesa come la RAM.
+      disk-quota: 2048MB
     build-parameters:
       builder: npm
       ignore: ["node_modules/"]

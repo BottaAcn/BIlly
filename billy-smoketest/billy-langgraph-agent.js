@@ -79,8 +79,17 @@ export function buildSystemPrompt(skills) {
   ].join('\n');
 }
 
-/** Costruisce l'agente. `trace` raccoglie le chiamate tool per la misura. */
-export async function buildAgent(trace) {
+export function makeModel() {
+  return new AzureOpenAiChatClient({
+    modelName: 'gpt-5.5',
+    resourceGroup: RESOURCE_GROUP,
+    max_tokens: 4096
+  });
+}
+
+/** I due tool, condivisi fra la versione LangGraph e il loop a mano di
+ *  controllo, così l'unica variabile che cambia è il framework. */
+export async function makeTools(trace) {
   const catalog = await loadCatalog();
 
   const searchKnowledge = tool(
@@ -129,14 +138,14 @@ export async function buildAgent(trace) {
     }
   );
 
-  const model = new AzureOpenAiChatClient({
-    modelName: 'gpt-5.5',
-    resourceGroup: RESOURCE_GROUP,
-    max_tokens: 4096
-  });
+  return { searchKnowledge, loadSkill, catalog, systemPrompt: buildSystemPrompt(catalog.skills) };
+}
 
-  const agent = createReactAgent({ llm: model, tools: [searchKnowledge, loadSkill] });
-  return { agent, systemPrompt: buildSystemPrompt(catalog.skills), catalog };
+/** Costruisce l'agente. `trace` raccoglie le chiamate tool per la misura. */
+export async function buildAgent(trace) {
+  const { searchKnowledge, loadSkill, catalog, systemPrompt } = await makeTools(trace);
+  const agent = createReactAgent({ llm: makeModel(), tools: [searchKnowledge, loadSkill] });
+  return { agent, systemPrompt, catalog };
 }
 
 /** Un turno, senza history — come nella misura del 27/35. */

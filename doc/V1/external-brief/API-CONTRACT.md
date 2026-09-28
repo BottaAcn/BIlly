@@ -105,6 +105,25 @@ data: {"type":"answer","answer":"In base ai documenti...","sources":[{"assetId":
 - I `delta` di un giro che finisce in tool call sono un preambolo del modello ("ora cerco..."), non la risposta: alla ricezione di un evento `tool` conviene **azzerare** l'anteprima accumulata. L'unico testo autorevole è `answer`.
 - L'assenza di un evento `answer` prima della chiusura dello stream significa richiesta interrotta.
 - Se il client chiude la connessione, il server interrompe il loop invece di lasciarlo orfano.
+- **La granularità dei `delta` non fa parte del contratto** e cambia da un motore all'altro (vedi §1.3): possono arrivare parola per parola o a blocchi più grossi, anche diverse centinaia in pochi secondi. Il client non deve ridisegnare la UI a ogni evento: accumulare il testo e dipingere al massimo una volta per frame (`requestAnimationFrame`) è il comportamento atteso. Vale anche per l'auto-scroll.
+- Un singolo chunk di rete può contenere **più messaggi SSE**: vanno estratti tutti e consegnati in ordine, non solo il primo.
+- La coppia `tool` → `result` può ripetersi **più volte** nella stessa risposta (l'agente fa più giri, anche sullo stesso strumento). Il numero di giri non è garantito né fissato dal contratto: la UI dei passi intermedi deve reggere una lista che cresce, non due o tre voci fisse.
+- `result` arriva **sempre dopo** il `tool` corrispondente e prima del `tool` successivo. Non ha contenuto da mostrare, ma è il segnale utile per spegnere l'indicatore "in corso" di quel passo prima che ne parta un altro.
+
+### 1.3 Motore agentico — `BILLY_ENGINE` (nota operativa)
+
+Dietro `askBilly` e `askBillyStream` ci sono **due implementazioni intercambiabili** dell'agente, scelte da una variabile d'ambiente del server:
+
+| `BILLY_ENGINE` | Motore |
+|---|---|
+| `graph` (**default**) | Grafo LangGraph JS (`srv/lib/graph.js`) |
+| `legacy` | Tool loop scritto a mano (`srv/lib/agent.js`), il motore storico |
+
+È una **manopola di rollback lato server**, non un parametro di richiesta: il client non può sceglierlo, non lo vede e non deve provare a rilevarlo. Qualunque valore diverso da `legacy` vale `graph`.
+
+**Il contratto sopra non cambia con il motore**: stessi endpoint, stessi campi di request e di response, gli stessi cinque tipi di evento SSE, lo stesso ordine (`tool`/`result` a coppie, `delta` in mezzo, `answer` per ultimo). Quello che cambia — e che il client **non deve** dare per stabile in nessuno dei due casi — è la *granularità* dei `delta`, il *numero* di giri di tool e la latenza dei singoli eventi.
+
+Se il motore preferito non è caricabile, la rotta SSE ricade automaticamente su `agent.js` invece di rispondere con un errore: per il client è trasparente.
 
 ---
 

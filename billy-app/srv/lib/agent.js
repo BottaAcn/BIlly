@@ -360,4 +360,21 @@ async function runAgent({ question, history = [], onEvent, signal } = {}) {
   return result;
 }
 
-module.exports = { runAgent, CERTIFICATION_WEIGHT_SQL, MAX_ITERATIONS };
+// Oltre a runAgent, il modulo esporta i pezzi riusati dal motore LangGraph
+// (srv/lib/graph.js): query dei tool, manifesto, system prompt e collector
+// delle fonti. Sono la business logic da tenere identica fra i due motori —
+// la pesatura per certificationLevel e le regole del prompt in particolare.
+module.exports = {
+  runAgent,
+  CERTIFICATION_WEIGHT_SQL,
+  MAX_ITERATIONS,
+  MAX_HISTORY_MESSAGES,
+  TOOLS,
+  loadSkillManifest,
+  buildSystemPrompt,
+  createSourceCollector,
+  runSearchKnowledge,
+  runLoadSkill,
+  sanitizeHistory,
+  truncate
+};

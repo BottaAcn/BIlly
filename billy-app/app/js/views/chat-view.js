@@ -19,6 +19,22 @@ function scrollToBottom() {
   chatBody.scrollTop = chatBody.scrollHeight;
 }
 
+// Durante lo streaming gli eventi possono essere centinaia: uno scroll
+// forzato per ognuno costa un reflow a testa e — peggio — strappa via la
+// pagina all'utente che e' risalito a rileggere. Qui si scorre al massimo
+// una volta per frame, e solo se si era gia' in fondo.
+const STICKY_PX = 80;
+let scrollFrame = 0;
+
+function scrollToBottomSoon() {
+  const near = chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight < STICKY_PX;
+  if (!near || scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = 0;
+    chatBody.scrollTop = chatBody.scrollHeight;
+  });
+}
+
 // Persistenza lato client su localStorage: chiudere la scheda (o il
 // browser) non deve cancellare le conversazioni, si ritrovano il giorno
 // dopo. Quello che si CONSERVA e quello che si MANDA al modello sono due
@@ -177,15 +193,26 @@ async function sendChatMessage(prefilled) {
   let preview = '';
 
   try {
+    // LangGraph puo' fare piu' giri di tool e manda i delta con una
+    // granularita' diversa dal motore storico: il contratto degli eventi
+    // (API-CONTRACT.md §1.2) e' pero' lo stesso, e il componente accumula
+    // e ridisegna una volta per frame. Qui basta tradurre e inoltrare.
     const data = await askBillyStream(question, backendHistory, (event) => {
       if (event.type === 'tool') {
         steps.push(stepLabel(event));
         billyMsg.addStep(steps[steps.length - 1]);
+        // Un tool call chiude il preambolo: il testo accumulato finora non
+        // e' la risposta (vedi le note del contratto).
+        preview = '';
+      } else if (event.type === 'result') {
+        // Il campo summary non si mostra (e' diagnostica): serve solo a
+        // spegnere il pallino del passo in corso prima che ne parta un altro.
+        billyMsg.completeStep();
       } else if (event.type === 'delta') {
         preview += event.text;
         billyMsg.setPreview(preview);
       }
-      scrollToBottom();
+      scrollToBottomSoon();
     });
     billyMsg.setAnswer(data.answer, data.sources, steps);
     history.push({ conv: currentConversationId, role: 'billy', kind: 'answer', markdown: data.answer, sources: data.sources, steps });

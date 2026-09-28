@@ -1,5 +1,5 @@
 const cds = require('@sap/cds');
-const { runAgent } = require('./lib/agent');
+const { selectEngine } = require('./lib/engine');
 
 module.exports = class BillyService extends cds.ApplicationService {
   async init() {
@@ -12,6 +12,7 @@ module.exports = class BillyService extends cds.ApplicationService {
   // La variante con i passi intermedi è la rotta SSE in srv/server.js.
   onAskBilly = async (req) => {
     const { question, history } = req.data;
+    const { runAgent } = selectEngine();
     return await runAgent({ question, history });
   };
 };

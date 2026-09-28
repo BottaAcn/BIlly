@@ -6,6 +6,7 @@
   "dependencies": {
     "@langchain/core": "^1.2.13",
     "@langchain/langgraph": "^1.4.18",
+    "@langchain/langgraph-checkpoint-sqlite": "^1.0.4",
     "@sap-ai-sdk/foundation-models": "^2.15.0",
     "@sap-ai-sdk/langchain": "^2.16.0",
     "@sap-ai-sdk/orchestration": "^2.15.0"

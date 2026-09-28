@@ -1,0 +1,354 @@
+{
+  "$comment": [
+    "Banco di prova del routing delle skill di Billy — i 35 casi di doc/V1/skill-routing-audit.md §5,",
+    "con l'esito misurato sul motore legacy dopo il fix del system prompt (doc/V1/causa-a-fix.md §3).",
+    "Le domande sono VERBATIM: non riformularle, altrimenti il confronto con la baseline non vale più.",
+    "",
+    "expect: 'skill' = deve caricare una skill che matcha 'accept' · 'none' = non deve caricare nulla.",
+    "accept / tolerate / answerMustMatch: regex (stringhe) applicate in minuscolo, accenti normalizzati.",
+    "  - accept: almeno una skill caricata deve matchare (skill in più = rumore, non fallimento:",
+    "    è il criterio con cui sono stati contati i casi 19 e 23 nella misura originale).",
+    "  - tolerate (solo con expect='none'): skill il cui caricamento non conta come fallimento (caso 35).",
+    "  - answerMustMatch (solo caso 10): criterio testuale, l'unico non misurabile dalle loadSkill.",
+    "flags: pattern nel testo della risposta segnalati come avviso, SENZA effetto sul punteggio."
+  ],
+  "baselineScore": 27,
+  "total": 35,
+  "baselineRef": "doc/V1/causa-a-fix.md §3 (27/35, motore legacy, catalogo a 22 skill, 2026-09-28)",
+  "skillGroups": {
+    "LEVA1": ["leva ?#? ?1\\b", "devil"],
+    "LEVA2": ["leva ?#? ?2\\b", "traduttore"],
+    "LEVA6": ["leva ?#? ?6\\b", "scenari di planning"],
+    "LEVA7": ["leva ?#? ?7\\b", "anticipatore"],
+    "MODELLO_DATI": ["foglio ?0[0-4]\\b", "\\breadme\\b", "architettura", "sorgenti", "dimensioni", "mapping"],
+    "PROCESSO_LOGICHE": ["foglio ?(0[5-9]|10)\\b", "logiche[ _]calcolo", "fasi", "allocazioni", "modello[ _]p&?l", "maschere", "data[ _]quality", "flusso[ _]gov"],
+    "SCHEDULER": ["scheduler"],
+    "QA": ["qa[ -]?validatore"],
+    "ORCHESTRATORE": ["orchestratore"]
+  },
+  "cases": [
+    {
+      "id": 1,
+      "question": "Ho stimato 120 giorni per questo progetto SAC Planning, me la sfidi prima che la mandi al cliente?",
+      "tipo": "facile",
+      "expectedLabel": "Leva #1",
+      "expect": "skill",
+      "accept": ["LEVA1"],
+      "baseline": { "verdict": "OK", "loaded": ["leva1"] }
+    },
+    {
+      "id": 2,
+      "question": "Quali sono i rischi nascosti in un canone di Application Management su SAC?",
+      "tipo": "facile",
+      "expectedLabel": "Leva #1",
+      "expect": "skill",
+      "accept": ["LEVA1"],
+      "baseline": { "verdict": "OK", "loaded": ["leva1"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 3,
+      "question": "Devo spiegare al CFO perché ci serve una Data Action per le allocazioni",
+      "tipo": "facile",
+      "expectedLabel": "Leva #2",
+      "expect": "skill",
+      "accept": ["LEVA2"],
+      "baseline": { "verdict": "OK", "loaded": ["leva2"] }
+    },
+    {
+      "id": 4,
+      "question": "Come presento il valore di Datasphere all'IT manager, non al CFO?",
+      "tipo": "facile",
+      "expectedLabel": "Leva #2",
+      "expect": "skill",
+      "accept": ["LEVA2"],
+      "baseline": { "verdict": "OK", "loaded": ["leva2"] }
+    },
+    {
+      "id": 5,
+      "question": "Il cliente vuole un rolling forecast, il team propone budget annuale con allocazioni. Cosa consiglio?",
+      "tipo": "facile",
+      "expectedLabel": "Leva #6",
+      "expect": "skill",
+      "accept": ["LEVA6"],
+      "baseline": { "verdict": "OK", "loaded": ["leva6"] }
+    },
+    {
+      "id": 6,
+      "question": "Che differenza c'è fra allocazione costi e driver-based, e quando conviene una o l'altra?",
+      "tipo": "ambiguo",
+      "expectedLabel": "Leva #6",
+      "expect": "skill",
+      "accept": ["LEVA6"],
+      "baseline": { "verdict": "OK", "loaded": ["leva6"] }
+    },
+    {
+      "id": 7,
+      "question": "Il modello di planning del cliente non torna, da cosa parto a guardare?",
+      "tipo": "ambiguo",
+      "expectedLabel": "Leva #6",
+      "expect": "skill",
+      "accept": ["LEVA6"],
+      "baseline": { "verdict": "KO", "loaded": ["09_Data_Quality"], "note": "problema di description di leva6, non di prompt" }
+    },
+    {
+      "id": 8,
+      "question": "È arrivato questo capitolato, conviene partecipare?",
+      "tipo": "facile",
+      "expectedLabel": "Leva #7",
+      "expect": "skill",
+      "accept": ["LEVA7"],
+      "baseline": { "verdict": "OK", "loaded": ["leva7"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 9,
+      "question": "Estraimi requisiti obbligatori e criteri di aggiudicazione da questo disciplinare",
+      "tipo": "facile",
+      "expectedLabel": "Leva #7",
+      "expect": "skill",
+      "accept": ["LEVA7"],
+      "baseline": { "verdict": "OK", "loaded": ["leva7"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 10,
+      "question": "Scrivimi la risposta tecnica per il lotto 2 di questa gara",
+      "tipo": "confine",
+      "expectedLabel": "nessuna — Billy deve dichiarare che si ferma al go/no-go",
+      "expect": "none",
+      "answerMustMatch": [
+        "go/ ?no-? ?go",
+        "non (la |lo |le )?(redigo|scrivo|produco|posso redigere|posso scrivere|posso produrre)",
+        "mi fermo (al|alla|allo)",
+        "(resta|rimane) fuori (dal|dallo|dalla)",
+        "non (redigo|scrivo|produco) (offerte|risposte tecniche|deliverable)"
+      ],
+      "baseline": {
+        "verdict": "KO",
+        "loaded": [],
+        "note": "nessuna skill caricata ma accetta comunque di redigere la risposta tecnica (confine di capacità, non di routing)"
+      }
+    },
+    {
+      "id": 11,
+      "question": "Aiutami a preparare il design SAC per un cliente retail",
+      "tipo": "ambiguo chiave",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "KO", "loaded": ["02-orchestratore"], "note": "la domanda più realistica del set; si risolve spubblicando 02" }
+    },
+    {
+      "id": 12,
+      "question": "Devo fare l'analisi tecnica di un progetto SAC Planning, da dove parto?",
+      "tipo": "ambiguo",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "KO", "loaded": ["02-orchestratore"] }
+    },
+    {
+      "id": 13,
+      "question": "Ti incollo la Business Blueprint del cliente, ricavane la struttura del modello",
+      "tipo": "ambiguo",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "KO", "loaded": [], "note": "il caso più ostinato: preambolo puro, il modello non considera la richiesta iniziata" }
+    },
+    {
+      "id": 14,
+      "question": "Quali dimensioni servono per un modello SAC Planning di un retailer?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "OK", "loaded": ["03_Dimensioni"] }
+    },
+    {
+      "id": 15,
+      "question": "Da dove prendo i dati per il modello e con che frequenza li aggiorno?",
+      "tipo": "ambiguo",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "KO", "loaded": [], "note": "risponde bene dai documenti (MINERVA) e si ferma lì" }
+    },
+    {
+      "id": 16,
+      "question": "Come mappo il campo KOSTL di SAP sulla dimensione Cost Center?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "OK", "loaded": ["04_Mapping_Tables"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 17,
+      "question": "Che gerarchie metto sulla dimensione Entity per un gruppo con 200 negozi?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Modello dati",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI"],
+      "baseline": { "verdict": "OK", "loaded": ["03_Dimensioni"] }
+    },
+    {
+      "id": 18,
+      "question": "Quali versioni mi servono fra Actual, Budget e Forecast e come le uso?",
+      "tipo": "ambiguo per costruzione",
+      "expectedLabel": "SAC Design — Modello dati oppure Leva #6 (entrambe accettabili)",
+      "expect": "skill",
+      "accept": ["MODELLO_DATI", "LEVA6"],
+      "baseline": { "verdict": "OK", "loaded": ["leva6"] }
+    },
+    {
+      "id": 19,
+      "question": "Come alloco gli OPEX centrali sulle entity?",
+      "tipo": "ambiguo chiave",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["06_Allocazioni"] }
+    },
+    {
+      "id": 20,
+      "question": "Scrivimi l'Advanced Formula per il carry-forward del saldo iniziale",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["Logiche_Calcolo"] }
+    },
+    {
+      "id": 21,
+      "question": "Come struttura le voci di conto economico fino all'EBITDA?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["07_Modello_PL"] }
+    },
+    {
+      "id": 22,
+      "question": "Devo convertire in EUR i dati delle controllate: come lo imposto in SAC?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["Logiche_Calcolo"] }
+    },
+    {
+      "id": 23,
+      "question": "Come faccio le maschere di inserimento budget per i responsabili di negozio?",
+      "tipo": "facile",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["08_Maschere_Input"] }
+    },
+    {
+      "id": 24,
+      "question": "Chi approva il budget e come blocco i dati dopo l'approvazione?",
+      "tipo": "ambiguo",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["10_Flusso_Governance"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 25,
+      "question": "Che controlli di qualità metto sui dati di planning?",
+      "tipo": "ambiguo",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE", "QA"],
+      "baseline": { "verdict": "OK", "loaded": ["09_Data_Quality"] }
+    },
+    {
+      "id": 26,
+      "question": "Ho già dimensioni e sorgenti, ora devo definire le fasi del processo di budget",
+      "tipo": "confine fra le due composite",
+      "expectedLabel": "SAC Design — Processo e logiche",
+      "expect": "skill",
+      "accept": ["PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["05_Fasi_Processo"] }
+    },
+    {
+      "id": 27,
+      "question": "Ho 8 persone e 40 attività da distribuire sui prossimi 6 mesi, chi fa cosa?",
+      "tipo": "facile",
+      "expectedLabel": "Pianificazione carichi di team (scheduler)",
+      "expect": "skill",
+      "accept": ["SCHEDULER"],
+      "baseline": { "verdict": "OK", "loaded": ["16-scheduler"] }
+    },
+    {
+      "id": 28,
+      "question": "Marzo è sovraccarico per due risorse, come ribilancio?",
+      "tipo": "facile",
+      "expectedLabel": "Pianificazione carichi di team (scheduler)",
+      "expect": "skill",
+      "accept": ["SCHEDULER"],
+      "baseline": { "verdict": "OK", "loaded": ["16-scheduler"] }
+    },
+    {
+      "id": 29,
+      "question": "Questo design SAC che mi ha passato il collega è completo?",
+      "tipo": "ambiguo",
+      "expectedLabel": "Revisione di una progettazione SAC (qa-validatore)",
+      "expect": "skill",
+      "accept": ["QA", "PROCESSO_LOGICHE"],
+      "baseline": { "verdict": "OK", "loaded": ["18-qa-validatore"], "note": "guarito dal fix del prompt (era NO-SKILL)" }
+    },
+    {
+      "id": 30,
+      "question": "Mi generi il file Excel con i 15 fogli di progettazione?",
+      "tipo": "negativo chiave",
+      "expectedLabel": "nessuna — Billy deve dire che restituisce tabelle in chat, non file",
+      "expect": "none",
+      "flags": [
+        { "label": "promette di generare un file", "pattern": "(lancio|avvio) (subito )?il render|genero il file|produco il (file|workbook)|ti (mando|invio|produco) l'?excel" }
+      ],
+      "baseline": { "verdict": "KO", "loaded": ["17-render-excel"], "note": "SPURIA — si risolve spubblicando 17" }
+    },
+    {
+      "id": 31,
+      "question": "Il progetto è in ritardo, come lo racconto allo steering?",
+      "tipo": "negativo",
+      "expectedLabel": "nessuna (searchKnowledge)",
+      "expect": "none",
+      "baseline": { "verdict": "OK", "loaded": [], "note": "stabile 3/3 nelle ripetizioni" }
+    },
+    {
+      "id": 32,
+      "question": "Fammi un business case con ROI e payback per questo progetto",
+      "tipo": "negativo",
+      "expectedLabel": "nessuna (searchKnowledge o \"non lo so\")",
+      "expect": "none",
+      "baseline": { "verdict": "KO", "loaded": ["leva2"], "note": "unica regressione del fix del prompt, confermata 3/4 ripetizioni" }
+    },
+    {
+      "id": 33,
+      "question": "Quanto costa in media un progetto SAC Planning?",
+      "tipo": "negativo",
+      "expectedLabel": "nessuna (searchKnowledge)",
+      "expect": "none",
+      "baseline": { "verdict": "OK", "loaded": [], "note": "stabile 3/3 nelle ripetizioni" }
+    },
+    {
+      "id": 34,
+      "question": "Qual è la policy trasferte della practice?",
+      "tipo": "negativo facile",
+      "expectedLabel": "nessuna (searchKnowledge)",
+      "expect": "none",
+      "baseline": { "verdict": "OK", "loaded": [] }
+    },
+    {
+      "id": 35,
+      "question": "Cos'è la REGOLA 0 della SAC Factory?",
+      "tipo": "negativo",
+      "expectedLabel": "nessuna (searchKnowledge sui documenti); 02-orchestratore tollerata",
+      "expect": "none",
+      "tolerate": ["ORCHESTRATORE"],
+      "baseline": { "verdict": "OK", "loaded": ["02-orchestratore"], "note": "unico uso sensato di 02: meta-conoscenza, non procedura" }
+    }
+  ]
+}

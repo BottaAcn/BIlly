@@ -4,6 +4,8 @@ const { embed } = require('./lib/ai');
 const { chunkText } = require('./lib/chunking');
 const { getOrCreateDefaultPlayer } = require('./lib/default-player');
 const { extractText } = require('./lib/text-extraction');
+const { syncAgentCapabilities, loadAgentDefinition, closeExpiredWorkSessions } = require('./lib/subagent');
+const { invalidate: invalidateMcpCache } = require('./lib/mcp-client');
 
 function addMonthsISO(months) {
   const d = new Date();
@@ -75,14 +77,18 @@ async function attachFile(assetsAttachmentsEntity, assetId, buffer, fileName, mi
   });
 }
 
-// Le skill non vanno chunkate: una procedura in N passi recuperata a pezzi
-// per similarità produce istruzioni mutilate. Restano fuori dal RAG e
-// vengono servite intere dal tool loadSkill dell'agente (srv/lib/agent.js).
+// Tipi che non vanno mai chunkati: una procedura in N passi recuperata a
+// pezzi per similarità produce istruzioni mutilate. Vale per le skill
+// (servite intere da loadSkill, srv/lib/agent.js) e per gli agenti, il cui
+// `content` è il prompt del sotto-agente più la sua lista di capacità:
+// caricato intero da loadAgentDefinition, mai per similarità.
+const NON_CHUNKED_TYPES = new Set(['skill', 'agent']);
+
 async function regenerateChunks(assetId, type, content, certificationLevel) {
   await DELETE.from('billy.Chunk').where({ asset_ID: assetId });
-  // La DELETE sopra copre anche il cambio di tipo document -> skill: i
-  // chunk preesistenti spariscono e non vengono rigenerati.
-  if (type === 'skill') return;
+  // La DELETE sopra copre anche il cambio di tipo document -> skill|agent:
+  // i chunk preesistenti spariscono e non vengono rigenerati.
+  if (NON_CHUNKED_TYPES.has(type)) return;
   const segments = chunkText(content || '');
   for (let i = 0; i < segments.length; i++) {
     const embedding = await embed(segments[i]);
@@ -128,12 +134,16 @@ module.exports = class CatalogService extends cds.ApplicationService {
     this.on('searchAssets', this.onSearchAssets);
     this.on('deepSearch', this.onDeepSearch);
     this.on('expireCertifications', this.onExpireCertifications);
+    this.on('getAgentDefinition', this.onGetAgentDefinition);
 
     // Automazione provvisoria: un vero job scheduler BTP (Job Scheduling
     // service) è infrastruttura di produzione fuori scope in questa fase.
     // Controlla la scadenza ogni 6 ore mentre il processo resta attivo.
     setInterval(() => {
       this.onExpireCertifications().catch((e) => console.error('expireCertifications fallita:', e.message));
+      // Le sessioni di lavoro scadute si chiudono sullo stesso giro: non
+      // meritano un job proprio e il TTL è di giorni, non di ore.
+      closeExpiredWorkSessions().catch((e) => console.error('closeExpiredWorkSessions fallita:', e.message));
     }, 6 * 60 * 60 * 1000);
 
     return super.init();
@@ -310,6 +320,15 @@ module.exports = class CatalogService extends cds.ApplicationService {
           certificationExpiresAt: addMonthsISO(validityMonths)
         });
         await regenerateChunks(revision.asset_ID, effectiveType, revision.content, 'certified');
+        // Materializza le capacità dichiarate nel prompt dell'agente. Come
+        // regenerateChunks, va chiamata anche per i non-agenti: cancella le
+        // righe rimaste dopo un cambio di tipo agent -> altro.
+        const caps = await syncAgentCapabilities(revision.asset_ID, effectiveType, revision.content);
+        if (caps.errors.length) {
+          console.error(`Agente ${revision.asset_ID}: capacità non risolte -> ${caps.errors.join(' | ')}`);
+        }
+        // L'endpoint MCP può essere cambiato con questa revisione.
+        if (effectiveType === 'application') await invalidateMcpCache(revision.asset_ID);
         await UPDATE('billy.AssetRevision', revisionId).with({
           status: 'approved',
           reviewedBy_ID: player.ID,
@@ -381,6 +400,12 @@ module.exports = class CatalogService extends cds.ApplicationService {
     // in Fase 0, stavolta prevenuto invece di scoperto a posteriori).
     await DELETE.from('billy.Asset.attachments').where({ up__ID: assetId });
     await DELETE.from('billy.Chunk').where({ asset_ID: assetId });
+    // Sia le capacità dell'agente cancellato, sia i riferimenti che altri
+    // agenti avevano verso di lui (altrimenti loadAgentDefinition andrebbe
+    // a vuoto su una FK morta a ogni turno).
+    await DELETE.from('billy.AgentCapability').where({ agent_ID: assetId });
+    await DELETE.from('billy.AgentCapability').where({ capability_ID: assetId });
+    await invalidateMcpCache(assetId);
     await DELETE.from('billy.AssetRevision').where({ asset_ID: assetId });
     await DELETE.from('billy.Asset').where({ ID: assetId });
     return true;
@@ -471,5 +496,26 @@ module.exports = class CatalogService extends cds.ApplicationService {
       await syncChunkCertification(row.ID, 'certifiedOutdated');
     }
     return { expiredCount: rows.length };
+  };
+
+  // Ispezione di un asset di tipo `agent`: prompt effettivo e capacità
+  // risolte. Serve al frontend (dettaglio asset) e a chi debugga perché un
+  // sotto-agente non vede una skill. Il grafo NON passa di qui: usa
+  // direttamente loadAgentDefinition (srv/lib/subagent.js), stessa fonte.
+  onGetAgentDefinition = async (req) => {
+    const { assetId } = req.data;
+    const def = await loadAgentDefinition(assetId);
+    if (!def) return req.error(404, `Nessun agente pubblicato con ID ${assetId}`);
+    return {
+      assetId: def.assetId,
+      title: def.title,
+      prompt: def.prompt,
+      certificationLevel: def.certificationLevel,
+      // `content` delle skill escluso: qui serve sapere *cosa* può usare
+      // l'agente, non rileggere decine di KB di procedure.
+      skills: def.skills.map((s) => ({ assetId: s.assetId, title: s.title, certificationLevel: s.certificationLevel })),
+      applications: def.mcpAssets,
+      warnings: def.warnings
+    };
   };
 };

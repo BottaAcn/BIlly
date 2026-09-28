@@ -80,23 +80,33 @@ export async function askBillyStream(question, history, onEvent, signal) {
   let buffer = '';
   let final = null;
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    // Un messaggio SSE finisce con una riga vuota; un chunk di rete può
-    // spezzarlo a metà, quindi si processa solo ciò che è completo.
-    const messages = buffer.split('\n\n');
-    buffer = messages.pop();
-    for (const raw of messages) {
-      const data = raw.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).join('');
-      if (!data) continue;
-      let event;
-      try { event = JSON.parse(data); } catch (e) { continue; }
-      if (event.type === 'answer') final = event;
-      if (event.type === 'error') throw new Error(event.message || 'Errore interno');
-      onEvent?.(event);
+  // Uscire dal ciclo senza chiudere il reader (errore a meta' stream, abort
+  // dell'utente) lascerebbe la connessione appesa lato browser.
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // Un messaggio SSE finisce con una riga vuota; un chunk di rete può
+      // spezzarlo a metà, quindi si processa solo ciò che è completo. Col
+      // motore a grafo i delta sono più fitti e in un solo chunk ne arrivano
+      // parecchi: vanno consegnati tutti, in ordine.
+      const messages = buffer.split('\n\n');
+      buffer = messages.pop();
+      for (const raw of messages) {
+        // Più righe `data:` nello stesso messaggio si concatenano con un a
+        // capo: è la regola SSE, non a filo.
+        const data = raw.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).join('\n');
+        if (!data) continue;
+        let event;
+        try { event = JSON.parse(data); } catch (e) { continue; }
+        if (event.type === 'answer') final = event;
+        if (event.type === 'error') throw new Error(event.message || 'Errore interno');
+        onEvent?.(event);
+      }
     }
+  } finally {
+    try { await reader.cancel(); } catch (e) { /* stream già chiuso */ }
   }
 
   if (!final) throw new Error('Risposta interrotta prima del completamento');
