@@ -84,9 +84,13 @@ async function loadSkillManifest() {
   }
 }
 
+// Il manifesto è l'unico livello 1 della progressive disclosure: va letto
+// come indice, non come contenuto. Le regole 3-6 sono prescrittive (e non
+// descrittive) perché in misura il modello si accontentava della
+// description — la nominava in risposta senza mai chiamare loadSkill.
 function buildSystemPrompt(skills) {
   const manifest = skills.length
-    ? skills.map((s) => `- ID: ${s.ID}\n  Titolo: ${s.title}\n  Quando usarla: ${s.description || '(nessuna descrizione)'}`).join('\n')
+    ? skills.map((s) => `- ID: ${s.ID}\n  Titolo: ${s.title}\n  Quando sceglierla: ${s.description || '(nessuna descrizione)'}`).join('\n')
     : '(nessuna skill pubblicata al momento)';
 
   return [
@@ -99,11 +103,16 @@ function buildSystemPrompt(skills) {
     'Regole di comportamento:',
     '1. Se la domanda riguarda fatti, policy o contenuti della practice, chiama `searchKnowledge` prima di rispondere. Non inventare: se non trovi nulla di pertinente, dillo esplicitamente.',
     '2. Ogni frammento restituito da `searchKnowledge` è preceduto dal suo stato di certificazione tra parentesi quadre. Se usi per la risposta una fonte che non è "certified", avvisa esplicitamente l\'utente che l\'informazione non è (ancora) certificata.',
-    '3. Se una delle skill elencate sotto è pertinente alla richiesta, caricala con `loadSkill` ed **eseguila**: segui i suoi passi e produci il risultato che descrive. Non limitarti a citarla o a riassumerla.',
-    '4. Puoi usare più strumenti, anche in sequenza (per esempio cercare i dati e poi applicarci una skill).',
-    '5. Non mostrare all\'utente gli ID tecnici delle skill: usa i loro titoli.',
+    '3. L\'elenco "Skill disponibili" è **solo un indice**: serve a scegliere, non contiene la procedura. La riga "Quando sceglierla" **non è** la skill: non è contenuto da riportare all\'utente e non basta mai per rispondere.',
+    '4. Se una delle skill elencate è pertinente alla richiesta, **devi** chiamare `loadSkill` con il suo ID **prima di scrivere la risposta**, e poi eseguirla: segui i suoi passi e produci il risultato che descrive. Vale anche se pensi di sapere già la risposta, anche se ti manca un documento o un dato dell\'utente (carica prima, chiedi dopo) e anche se la userai solo in parte. Non limitarti a citarla o a riassumerla.',
+    '5. Non nominare in risposta una skill che non hai caricato in questo turno: se la citi, devi averla caricata.',
+    '6. Se invece nessuna skill è davvero pertinente, non caricarne nessuna: rispondi con `searchKnowledge` o ammetti di non saperlo. Caricare una skill a sproposito è un errore tanto quanto non caricarla quando serve.',
+    '7. Esegui una skill entro i suoi confini: fai ciò che la skill copre e di\' esplicitamente cosa resta fuori dal suo scopo, invece di accettare l\'incarico intero.',
+    '8. Puoi usare più strumenti, anche in sequenza (per esempio cercare i dati e poi applicarci una skill).',
+    '9. Non mostrare all\'utente gli ID tecnici delle skill: usa i loro titoli. Allo stesso modo i termini interni che compaiono nell\'indice (nomi di file, di script o di artefatti come `spec.json`) sono gergo del catalogo: non usarli con l\'utente se non arrivano dal corpo di una skill che hai caricato.',
     '',
     '## Skill disponibili',
+    '_Indice per la scelta, non contenuto: per usare una di queste skill devi caricarla con `loadSkill`._',
     manifest
   ].join('\n');
 }
