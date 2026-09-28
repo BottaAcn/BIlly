@@ -5,7 +5,12 @@ using { billy as db } from '../db/schema';
 // provvisori, non vera sicurezza (architecture.md §3.1/§9).
 service CatalogService @(path: 'catalog', protocol: 'rest') {
 
-  entity Asset as projection on db.Asset where published = true;
+  // `content` escluso di proposito: è il corpo intero dell'asset (per le
+  // skill anche decine di KB) e servirlo in ogni elemento della lista
+  // catalogo gonfierebbe la risposta di GET /rest/catalog/Asset senza che
+  // nessuna vista lo usi. Chi ha bisogno del testo usa getRevisionDetail
+  // (revisione) o, lato agente, il tool loadSkill.
+  entity Asset as select from db.Asset { * } excluding { content } where published = true;
 
   action uploadAsset(
     title        : String,

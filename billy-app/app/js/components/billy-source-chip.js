@@ -42,10 +42,14 @@ class BillySourceChip extends HTMLElement {
     if (!this.isConnected || !this._data) return;
     const { title, similarity, certificationLevel } = this._data;
     this.setAttribute('aria-label', `Apri fonte: ${title}`);
+    // similarity null = fonte di tipo skill: non è stata recuperata per
+    // similarità, il modello l'ha scelta dal manifesto ed eseguita
+    // (convenzione del backend, vedi API-CONTRACT.md §1).
+    const pill = similarity == null ? 'skill usata' : fmtSimilarity(similarity);
     this.innerHTML = `
       <billy-badge level="${certificationLevel}"></billy-badge>
       <span class="source-chip-title">${escapeHtml(title)}</span>
-      <span class="similarity-pill">${fmtSimilarity(similarity)}</span>
+      ${pill ? `<span class="similarity-pill">${pill}</span>` : ''}
     `;
   }
 }

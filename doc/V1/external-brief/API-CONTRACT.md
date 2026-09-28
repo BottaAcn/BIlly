@@ -15,16 +15,33 @@ https://accenture-global-solutions-ltd-accenture-sapdiscover-it67bfc13e.cfapps.e
 
 ---
 
-## 1. `BillyService` — chat RAG
+## 1. `BillyService` — chat agentica
 
-### `POST /rest/billy/askBilly`
+Billy non è più un RAG one-shot: è un **agente con tool loop**. Ad ogni domanda decide da solo se cercare nei documenti (`searchKnowledge`) e/o se caricare ed **eseguire** una delle skill pubblicate nel marketplace (`loadSkill`), eventualmente più volte in sequenza. Il frontend non controlla né vede questa scelta se non attraverso gli eventi della variante in streaming (§1.2).
+
+### 1.1 `POST /rest/billy/askBilly` (non-streaming)
 
 Domanda in linguaggio naturale → risposta con citazioni.
 
+Usato anche come tool MCP (Fase 7), quindi restituisce sempre un risultato unico a fine elaborazione.
+
 **Request:**
 ```json
-{ "question": "Come funziona lo smart working?" }
+{
+  "question": "Come funziona lo smart working?",
+  "history": [
+    { "role": "user", "content": "Ciao, chi sei?" },
+    { "role": "assistant", "content": "Sono Billy, l'assistente della practice..." }
+  ]
+}
 ```
+
+`history` è **opzionale** (i turni precedenti della conversazione, senza quello corrente: la domanda corrente va in `question`). Sono ammessi solo i ruoli `"user"` e `"assistant"`; il server tiene gli ultimi 20 messaggi e ignora il resto. Omettendolo, il comportamento è identico a prima.
+
+**Quanto storico mandare (contratto esplicito, non un dettaglio del frontend):**
+- Il client **conserva** molto più di quello che manda. Il frontend di riferimento persiste le conversazioni in `localStorage` (chiave `billy-chat-history`, tetto di 200 messaggi / ~400 KB, con taglio dei più vecchi) solo per poterle rileggere.
+- Al server manda invece **solo la conversazione in corso** — una conversazione si chiude all'apertura della pagina e al "reset" della chat — e di quella **solo gli ultimi 16 messaggi**. Mandare settimane di storico gonfierebbe il contesto e il costo in token senza aggiungere pertinenza.
+- Il server applica comunque un proprio tetto difensivo: tiene **gli ultimi 20 messaggi** di `history`, scarta ruoli diversi da `user`/`assistant` e tronca i contenuti oltre 8.000 caratteri. Un client che manda di più non riceve un errore: il surplus viene semplicemente ignorato.
 
 **Response (200):**
 ```json
@@ -48,7 +65,46 @@ Domanda in linguaggio naturale → risposta con citazioni.
 - `certificationLevel` per ogni source è uno tra: `"community"`, `"certified"`, `"certifiedOutdated"`, `"deprecated"` (quest'ultimo in pratica non compare mai tra le source, è escluso a monte lato server).
 - `link` è un path relativo (`/catalog/asset/<id>`) — **il frontend decide il routing reale**, questo è solo il contratto di cosa aspettarsi come riferimento all'asset.
 - `sources` può essere un array vuoto se non ci sono asset pertinenti pubblicati.
-- **Non c'è ancora lo streaming esposto lato REST** in questo endpoint (arriva tutto insieme a fine elaborazione) — prevedere comunque uno stato di caricamento, la risposta può richiedere diversi secondi (embedding + retrieval + generazione LLM).
+- `similarity` è `null` quando la fonte è una **skill** che Billy ha caricato ed eseguito, non un documento recuperato per similarità. È la convenzione che distingue i due casi: `similarity === null` ⇒ fonte-skill, valore numerico ⇒ fonte-documento. Il frontend non deve renderizzare "0% rilevanza" in quel caso.
+- Questo endpoint **non streamma** (arriva tutto insieme a fine elaborazione) — prevedere uno stato di caricamento, la risposta può richiedere parecchi secondi (l'agente può fare più giri di tool prima di rispondere). Per i passi intermedi usare §1.2.
+
+### 1.2 `POST /rest/billy/askBillyStream` (streaming, SSE)
+
+Stessa elaborazione di `askBilly`, ma i passi intermedi arrivano man mano. **Non è un'action CDS** ma una rotta express dedicata (un'action CDS non può fare Server-Sent Events): non compare fra i tool MCP.
+
+**Request:** identica a `askBilly` (`question` + `history` opzionale).
+
+**Response (200):** `Content-Type: text/event-stream`. Ogni messaggio SSE è una riga `data: <json>` seguita da una riga vuota. Il primo byte inviato è il commento SSE `: ok`, per aprire subito la connessione.
+
+Tipi di evento:
+
+| `type` | Campi | Significato |
+|---|---|---|
+| `tool` | `name`, `args` | Billy sta per eseguire uno strumento. `name` è `"searchKnowledge"` (con `args.query`) o `"loadSkill"` (con `args.skillId`). |
+| `result` | `name`, `ok`, `summary` | Strumento eseguito. `summary` sono i primi 200 caratteri del risultato, solo per diagnostica: non va mostrato all'utente. |
+| `delta` | `text` | Pezzo di testo generato dal modello. |
+| `answer` | `answer`, `sources` | Risposta finale, **stessa identica forma** del body di `askBilly`. È l'ultimo evento di una richiesta riuscita. |
+| `error` | `message` | Errore a metà elaborazione. La connessione viene poi chiusa. |
+
+Esempio di flusso:
+```
+: ok
+
+data: {"type":"tool","name":"searchKnowledge","args":{"query":"stima effort AM"}}
+
+data: {"type":"result","name":"searchKnowledge","ok":true,"summary":"- [certified] Listino AM: ..."}
+
+data: {"type":"delta","text":"In base"}
+
+data: {"type":"delta","text":" ai documenti"}
+
+data: {"type":"answer","answer":"In base ai documenti...","sources":[{"assetId":"...","title":"Leva #1 — Devil's Advocate sulle stime","similarity":null,"certificationLevel":"certified","link":"/catalog/asset/..."}]}
+```
+
+**Note:**
+- I `delta` di un giro che finisce in tool call sono un preambolo del modello ("ora cerco..."), non la risposta: alla ricezione di un evento `tool` conviene **azzerare** l'anteprima accumulata. L'unico testo autorevole è `answer`.
+- L'assenza di un evento `answer` prima della chiusura dello stream significa richiesta interrotta.
+- Se il client chiude la connessione, il server interrompe il loop invece di lasciarlo orfano.
 
 ---
 
@@ -181,6 +237,7 @@ Approva o rifiuta una revisione in coda.
 - `approve: false` → la revisione viene rifiutata, l'asset resta invariato (se era la prima revisione, resta non pubblicato)
 - `validityMonths` e `pointsPct` sono rilevanti solo se `approve: true`
 - Se la revisione è un **rinnovo** (vedi `kind: "renewal"` sopra) e si prova a mandare `approve: false` → errore 400 esplicito (un rinnovo non si "rifiuta", si usa `setCertificationLevel` per deprecare)
+- All'approvazione il contenuto della revisione viene copiato sull'asset. Per gli asset di tipo `document` (e tutti gli altri tipi) vengono anche generati i chunk per il RAG; per `type: "skill"` **no**: una procedura spezzata in frammenti da 700 caratteri produce istruzioni mutilate. Le skill non entrano nel retrieval per similarità — Billy le carica intere quando servono (§1). Se una revisione approvata cambia il tipo di un asset da `document` a `skill`, i chunk preesistenti vengono eliminati.
 
 **Response (200):** l'oggetto `Asset` completo aggiornato (stessa forma di 2.1/2.2).
 
@@ -280,7 +337,7 @@ Il `Player` corrente ha due flag: `isCertifier`, `isAdmin`. **Non esiste ancora 
 
 - **Nessun endpoint di gamification/leaderboard/punti.** Il modello dati (`Season`, `PointEvent`, `totalPoints` su `Player`) esiste nello schema ma **non è ancora popolato né esposto** da nessun servizio. Se si costruisce una pagina Leaderboard, va fatta con **dati finti/mock**, chiaramente isolata, pronta per essere ricollegata quando l'endpoint esisterà.
 - **Nessun login/autenticazione.**
-- **Nessuno streaming** della risposta di Billy (arriva tutta insieme).
+- ~~**Nessuno streaming** della risposta di Billy.~~ Ora esiste: `POST /rest/billy/askBillyStream` (§1.2). L'action `askBilly` resta comunque non-streaming.
 
 ## 5. Errori — formato
 

@@ -5,7 +5,7 @@
 import './components/billy-modal.js';
 import './components/billy-toast-container.js';
 import { initHomeView, loadHomeStats } from './views/home-view.js';
-import { initChatView } from './views/chat-view.js';
+import { initChatView, prefillChat } from './views/chat-view.js';
 import { initCatalogView, loadCatalog, openAssetDetail } from './views/catalog-view.js';
 import { initUploadView } from './views/upload-view.js';
 import { initQueueView, loadQueue } from './views/queue-view.js';
@@ -37,6 +37,14 @@ document.querySelectorAll('[data-view]').forEach((btn) => {
 document.addEventListener('open-asset', (e) => {
   showView('catalog');
   openAssetDetail(e.detail.assetId);
+});
+
+// "Usa questa skill" su una card del catalogo: porta in chat con
+// l'invocazione già scritta. Routing qui per lo stesso motivo di
+// 'open-asset' — la card non conosce né la chat né api.js.
+document.addEventListener('use-skill', (e) => {
+  showView('chat');
+  prefillChat(`Usa la skill "${e.detail.title}" per `);
 });
 
 // Stesso principio di 'open-asset': un'azione dentro una vista (es. il

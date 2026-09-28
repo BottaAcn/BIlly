@@ -3,7 +3,9 @@ import { escapeHtml, fmtSimilarity, TYPE_LABELS, TYPE_ICONS } from '../utils.js'
 
 // <billy-asset-card> — card nella griglia del catalogo.
 // Proprietà: .asset = { ID, title, description, type, certificationLevel, _similarity? }
-// Evento emesso: 'open' (bubbles), detail: { assetId }
+// Eventi emessi (bubbles): 'open' { assetId } | 'use-skill' { assetId, title }
+// 'use-skill' esiste solo per type === 'skill': gli altri tipi non hanno
+// (ancora) un modello di delivery definito, quindi nessuna CTA.
 // role="button"/tabindex/keydown: è un <div> reso interattivo via JS, senza
 // questo non sarebbe raggiungibile né attivabile da tastiera.
 class BillyAssetCard extends HTMLElement {
@@ -31,6 +33,16 @@ class BillyAssetCard extends HTMLElement {
     this.dispatchEvent(new CustomEvent('open', { bubbles: true, detail: { assetId: this._asset.ID } }));
   }
 
+  useSkill(e) {
+    // La card intera è cliccabile: senza stopPropagation il click aprirebbe
+    // anche il dettaglio dell'asset.
+    e.stopPropagation();
+    this.dispatchEvent(new CustomEvent('use-skill', {
+      bubbles: true,
+      detail: { assetId: this._asset.ID, title: this._asset.title }
+    }));
+  }
+
   render() {
     if (!this.isConnected || !this._asset) return;
     const a = this._asset;
@@ -46,8 +58,11 @@ class BillyAssetCard extends HTMLElement {
       <div class="card-footer">
         <billy-badge level="${a.certificationLevel}"></billy-badge>
         ${a._similarity != null ? `<span class="similarity-pill">${fmtSimilarity(a._similarity)}</span>` : ''}
+        ${a.type === 'skill' ? '<button type="button" class="btn btn-sm card-use-skill">Usa questa skill</button>' : ''}
       </div>
     `;
+    const useBtn = this.querySelector('.card-use-skill');
+    if (useBtn) useBtn.addEventListener('click', (e) => this.useSkill(e));
   }
 }
 

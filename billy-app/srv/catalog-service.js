@@ -43,8 +43,14 @@ async function attachFile(assetsAttachmentsEntity, assetId, buffer, fileName, mi
   });
 }
 
-async function regenerateChunks(assetId, content, certificationLevel) {
+// Le skill non vanno chunkate: una procedura in N passi recuperata a pezzi
+// per similarità produce istruzioni mutilate. Restano fuori dal RAG e
+// vengono servite intere dal tool loadSkill dell'agente (srv/lib/agent.js).
+async function regenerateChunks(assetId, type, content, certificationLevel) {
   await DELETE.from('billy.Chunk').where({ asset_ID: assetId });
+  // La DELETE sopra copre anche il cambio di tipo document -> skill: i
+  // chunk preesistenti spariscono e non vengono rigenerati.
+  if (type === 'skill') return;
   const segments = chunkText(content || '');
   for (let i = 0; i < segments.length; i++) {
     const embedding = await embed(segments[i]);
@@ -254,10 +260,16 @@ module.exports = class CatalogService extends cds.ApplicationService {
 
     if (revision.status === 'pending') {
       if (approve) {
+        // editAsset può creare una revisione senza `type`: in quel caso il
+        // tipo effettivo resta quello già sull'asset, ed è quello che
+        // decide se generare i chunk o no.
+        const asset = await SELECT.one.from('billy.Asset').where({ ID: revision.asset_ID }).columns('type');
+        const effectiveType = revision.type || asset?.type;
         await UPDATE('billy.Asset', revision.asset_ID).with({
           title: revision.title,
           description: revision.description,
-          type: revision.type,
+          type: effectiveType,
+          content: revision.content,
           externalLink: revision.externalLink,
           published: true,
           certificationLevel: 'certified',
@@ -265,7 +277,7 @@ module.exports = class CatalogService extends cds.ApplicationService {
           certifiedAt: new Date().toISOString(),
           certificationExpiresAt: addMonthsISO(validityMonths)
         });
-        await regenerateChunks(revision.asset_ID, revision.content, 'certified');
+        await regenerateChunks(revision.asset_ID, effectiveType, revision.content, 'certified');
         await UPDATE('billy.AssetRevision', revisionId).with({
           status: 'approved',
           reviewedBy_ID: player.ID,

@@ -48,6 +48,11 @@ entity Asset : cuid, managed {
   uploadedBy             : Association to Player not null;
   certifiedBy            : Association to Player;
   externalLink           : String(500);
+  // Copia del contenuto dell'ultima revisione approvata. Denormalizzato di
+  // proposito (stesso precedente di Chunk.certificationLevel): il tool
+  // loadSkill dell'agente è sul percorso caldo e deve leggere il corpo con
+  // una sola SELECT, senza risalire all'ultima AssetRevision approvata.
+  content                : LargeString;
   // Storage kind "db" su HANA (nessun Object Store), scan disattivato
   // (placeholder "Unscanned" visibile, non silenzio — architecture.md §6).
   // Nota: vive sull'Asset, non su AssetRevision — un editAsset con nuovo
