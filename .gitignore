@@ -22,3 +22,6 @@ mta_archives/
 *.mtar
 *.log
 .DS_Store
+
+# Makefile temporaneo generato da mbt build
+Makefile_*.mta
