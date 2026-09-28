@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import {
-  escapeHtml, fmtDate, TYPE_LABELS, CERT_LABELS, CERT_SLUG, CERT_UI, certUi,
+  escapeHtml, fmtDate, TYPE_LABELS, TYPE_ORDER, typeOf,
+  CERT_LABELS, CERT_SLUG, CERT_UI, certUi,
   computeCompleteness, authorOf
 } from '../utils.js';
 import '../components/billy-asset-card.js';
@@ -11,6 +12,8 @@ const catalogSearch = document.getElementById('catalog-search');
 const deepToggle = document.getElementById('deep-search-toggle');
 const catalogSortRow = document.getElementById('catalog-sort');
 const catalogFilters = document.getElementById('catalog-filters');
+const catalogTypes = document.getElementById('catalog-types');
+const groupToggle = document.getElementById('catalog-group');
 const catalogCount = document.getElementById('catalog-count');
 const modal = document.getElementById('modal');
 const toasts = document.getElementById('toast-container');
@@ -18,7 +21,12 @@ const toasts = document.getElementById('toast-container');
 let catalogCache = [];
 let currentList = [];
 let certFilter = 'all';
+let typeFilter = 'all';
 let sortMode = 'recent';
+// Raggruppamento acceso di default: con 22 skill e 8 documenti mescolati in
+// una griglia unica, trovare l'unico documento utile significa scorrere
+// trenta card indistinte. Resta spegnibile (vedi il toggle in initCatalogView).
+let groupByType = true;
 // Asset aperto nella modale: serve al pannello "cambia stato" inline, che
 // agisce sull'asset corrente senza riaprire nulla.
 let currentAsset = null;
@@ -34,11 +42,27 @@ function skeletonCards() {
     </div>`).join('');
 }
 
-// Filtro/ordinamento applicati lato client sulla lista già caricata: né il
+// ══ FILTRI, ORDINAMENTO, RAGGRUPPAMENTO ══
+// I controlli sono quattro e vanno tenuti indipendenti, perché rispondono a
+// quattro domande diverse: "di cosa parla" (ricerca, l'unica che passa dal
+// server), "di chi mi posso fidare" (certificazione), "che cosa è" (tipo),
+// "in che ordine lo guardo" (ordinamento). Ricerca, certificazione e tipo si
+// sommano in AND; l'ordinamento è l'ultimo passo e non toglie nulla. Il
+// raggruppamento non è un quinto filtro: è solo il modo in cui la lista
+// già filtrata e ordinata viene impaginata.
+//
+// Filtri e ordinamento restano lato client sulla lista già caricata: né il
 // cambio filtro né il cambio ordinamento fanno una nuova chiamata API.
-function applyFiltersAndSort(list) {
-  let out = certFilter === 'all' ? list : list.filter((a) => a.certificationLevel === certFilter);
-  out = [...out];
+function byCert(list) {
+  return certFilter === 'all' ? list : list.filter((a) => a.certificationLevel === certFilter);
+}
+
+function byType(list) {
+  return typeFilter === 'all' ? list : list.filter((a) => typeOf(a) === typeFilter);
+}
+
+function sortList(list) {
+  const out = [...list];
   if (sortMode === 'alpha') {
     out.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
   } else if (sortMode === 'cert') {
@@ -54,19 +78,117 @@ function applyFiltersAndSort(list) {
   return out;
 }
 
-function renderFiltered() {
-  const filtered = applyFiltersAndSort(currentList);
-  catalogCount.textContent = filtered.length === 1 ? '1 asset trovato' : `${filtered.length} asset trovati`;
-  catalogGrid.innerHTML = '';
-  if (!filtered.length) {
-    catalogGrid.innerHTML = '<div class="ccard-empty">Nessun risultato.</div>';
+// Pill di tipo. Due scelte che vanno lette insieme:
+//  - l'ELENCO delle pill viene dal catalogo intero, non dai risultati
+//    correnti: se cambiasse a ogni tasto premuto la riga ballerebbe sotto il
+//    puntatore e sparirebbe proprio la pill che si sta per cliccare. I 6 tipi
+//    non compaiono tutti: quelli che nessuno ha mai caricato sarebbero solo
+//    rumore (oggi in catalogo esistono davvero skill e documenti);
+//  - i CONTEGGI invece sono vivi, calcolati su ricerca + certificazione ma
+//    PRIMA del filtro di tipo. Così ogni numero risponde a "quanti risultati
+//    ottengo se clicco qui"; calcolandoli dopo, ogni pill non selezionata
+//    direbbe 0 e la riga smetterebbe di essere navigabile.
+function renderTypePills(scoped) {
+  const universe = catalogCache.length ? catalogCache : currentList;
+  const present = TYPE_ORDER.filter((t) => universe.some((a) => typeOf(a) === t));
+  // Un tipo può sparire dal catalogo (eliminato l'ultimo asset) mentre il suo
+  // filtro è attivo: senza questo resterebbe un filtro invisibile che svuota
+  // la griglia senza spiegare perché.
+  if (typeFilter !== 'all' && !present.includes(typeFilter)) typeFilter = 'all';
+
+  // Catalogo di un tipo solo: la riga non offrirebbe nessuna scelta.
+  catalogTypes.hidden = present.length < 2;
+  if (catalogTypes.hidden) {
+    catalogTypes.innerHTML = '';
     return;
   }
-  filtered.forEach((a) => {
-    const card = document.createElement('billy-asset-card');
-    card.asset = a;
-    card.addEventListener('open', (e) => openAssetDetail(e.detail.assetId));
-    catalogGrid.appendChild(card);
+
+  const counts = {};
+  scoped.forEach((a) => { const t = typeOf(a); counts[t] = (counts[t] || 0) + 1; });
+
+  const pill = (value, label, count) => {
+    const on = value === typeFilter;
+    // Una pill a zero resta visibile (dice che quel tipo esiste, ma che gli
+    // altri filtri lo escludono) e non cliccabile: porterebbe a una griglia
+    // vuota. Quella accesa resta sempre attiva, serve per tornare indietro.
+    const off = !count && !on ? ' disabled' : '';
+    return `<button class="ftag${on ? ' on' : ''}" type="button"${off}`
+      + ` data-filter-type="${value}" aria-pressed="${on}">`
+      + `${escapeHtml(label)}<span class="ftag-n">${count}</span></button>`;
+  };
+
+  // innerHTML rigenera i nodi a ogni render: se il fuoco era su una pill
+  // (navigazione da tastiera) va rimesso, altrimenti dopo un Invio finisce
+  // sul <body> e si perde il posto nella pagina.
+  const hadFocus = catalogTypes.contains(document.activeElement);
+  catalogTypes.innerHTML = '<span class="flt-lbl">Tipo:</span>'
+    + pill('all', 'Tutti', scoped.length)
+    + present.map((t) => pill(t, TYPE_LABELS[t], counts[t] || 0)).join('');
+  if (hadFocus) catalogTypes.querySelector(`[data-filter-type="${typeFilter}"]`)?.focus();
+}
+
+// Raggruppa preservando l'ordine di prima apparizione. È la regola che tiene
+// insieme raggruppamento e ordinamento senza casi speciali: si ordina prima
+// la lista piatta, poi la si spezza in sezioni, così le sezioni escono
+// nell'ordine del criterio attivo e dentro ogni sezione vale lo stesso ordine.
+// Con "A → Z" viene prima la sezione del primo titolo in alfabeto; con la
+// rilevanza della ricerca approfondita viene prima la sezione che contiene il
+// risultato migliore, e la card in alto a sinistra resta la prima della
+// classifica esattamente come nella griglia piatta.
+function groupsOf(list) {
+  const groups = new Map();
+  list.forEach((a) => {
+    const t = typeOf(a);
+    if (!groups.has(t)) groups.set(t, []);
+    groups.get(t).push(a);
+  });
+  return [...groups];
+}
+
+function cardFor(asset) {
+  const card = document.createElement('billy-asset-card');
+  card.asset = asset;
+  card.addEventListener('open', (e) => openAssetDetail(e.detail.assetId));
+  return card;
+}
+
+// Scheletro, errori e stato vuoto vogliono sempre la griglia piatta:
+// .ccard-empty occupa la riga con grid-column:1/-1 e fuori da un grid non
+// avrebbe nulla da attraversare.
+function fillGrid(html) {
+  catalogGrid.className = 'cgrid';
+  catalogGrid.innerHTML = html;
+}
+
+function renderFiltered() {
+  const scoped = byCert(currentList);
+  renderTypePills(scoped);
+  const filtered = sortList(byType(scoped));
+
+  catalogCount.textContent = filtered.length === 1 ? '1 asset trovato' : `${filtered.length} asset trovati`;
+  if (!filtered.length) return fillGrid('<div class="ccard-empty">Nessun risultato.</div>');
+
+  const groups = groupsOf(filtered);
+  // Un gruppo solo (filtro di tipo attivo, o risultati tutti dello stesso
+  // tipo): l'intestazione ripeterebbe quello che dicono già la pill accesa e
+  // il conteggio qui sopra, quindi griglia piatta.
+  if (!groupByType || groups.length < 2) {
+    fillGrid('');
+    filtered.forEach((a) => catalogGrid.appendChild(cardFor(a)));
+    return;
+  }
+
+  catalogGrid.className = 'cgroups';
+  catalogGrid.innerHTML = '';
+  groups.forEach(([type, items]) => {
+    const section = document.createElement('section');
+    section.className = 'cgroup';
+    section.innerHTML = `<h2 class="cgroup-head">${escapeHtml(TYPE_LABELS[type])}`
+      + `<span class="cgroup-count">${items.length}</span></h2>`
+      + '<div class="cgrid"></div>';
+    const grid = section.querySelector('.cgrid');
+    items.forEach((a) => grid.appendChild(cardFor(a)));
+    catalogGrid.appendChild(section);
   });
 }
 
@@ -76,12 +198,12 @@ function setBaseList(list) {
 }
 
 export async function loadCatalog() {
-  catalogGrid.innerHTML = skeletonCards();
+  fillGrid(skeletonCards());
   try {
     catalogCache = await api.listAssets();
     setBaseList(catalogCache);
   } catch (e) {
-    catalogGrid.innerHTML = `<div class="ccard-empty">Errore nel caricamento: ${escapeHtml(e.message)}</div>`;
+    fillGrid(`<div class="ccard-empty">Errore nel caricamento: ${escapeHtml(e.message)}</div>`);
   }
 }
 
@@ -89,7 +211,7 @@ async function runCatalogSearch() {
   const query = catalogSearch.value.trim();
   if (!query) return setBaseList(catalogCache);
 
-  catalogGrid.innerHTML = skeletonCards();
+  fillGrid(skeletonCards());
   try {
     if (deepToggle.checked) {
       // deepSearch ritorna {assetId, title, similarity}, non l'intera scheda
@@ -101,7 +223,7 @@ async function runCatalogSearch() {
       setBaseList(await api.searchAssets(query));
     }
   } catch (e) {
-    catalogGrid.innerHTML = `<div class="ccard-empty">Errore nella ricerca: ${escapeHtml(e.message)}</div>`;
+    fillGrid(`<div class="ccard-empty">Errore nella ricerca: ${escapeHtml(e.message)}</div>`);
   }
 }
 
@@ -258,9 +380,30 @@ export function initCatalogView() {
   catalogFilters.querySelectorAll('[data-filter-cert]').forEach((chip) => {
     chip.addEventListener('click', () => {
       certFilter = chip.dataset.filterCert;
-      catalogFilters.querySelectorAll('[data-filter-cert]').forEach((c) => c.classList.toggle('on', c === chip));
+      catalogFilters.querySelectorAll('[data-filter-cert]').forEach((c) => {
+        c.classList.toggle('on', c === chip);
+        // .on è solo colore: senza aria-pressed uno screen reader legge
+        // cinque bottoni identici e non sa quale filtro è attivo.
+        c.setAttribute('aria-pressed', String(c === chip));
+      });
       renderFiltered();
     });
+  });
+
+  // Le pill di tipo sono rigenerate a ogni render (i conteggi cambiano):
+  // l'ascoltatore sta sul contenitore, che invece non viene mai sostituito.
+  catalogTypes.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-filter-type]');
+    if (!chip) return;
+    typeFilter = chip.dataset.filterType;
+    renderFiltered();
+  });
+
+  groupToggle.addEventListener('click', () => {
+    groupByType = !groupByType;
+    groupToggle.classList.toggle('on', groupByType);
+    groupToggle.setAttribute('aria-pressed', String(groupByType));
+    renderFiltered();
   });
 
   catalogSortRow.querySelectorAll('[data-sort]').forEach((pill) => {

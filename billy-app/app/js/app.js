@@ -9,8 +9,9 @@ import { initChatView, prefillChat } from './views/chat-view.js';
 import { initCatalogView, loadCatalog, openAssetDetail } from './views/catalog-view.js';
 import { initUploadView } from './views/upload-view.js';
 import { initQueueView, loadQueue } from './views/queue-view.js';
+import { initGameView, loadGame } from './views/game-view.js';
 
-const views = ['chat', 'catalog', 'upload', 'queue'];
+const views = ['chat', 'catalog', 'upload', 'queue', 'game'];
 
 function showView(name) {
   views.forEach((v) => {
@@ -23,6 +24,10 @@ function showView(name) {
   });
   if (name === 'catalog') loadCatalog();
   if (name === 'queue') loadQueue();
+  // La classifica si ricarica a ogni ingresso come catalogo e coda: i punti
+  // cambiano mentre si lavora nelle altre viste (un'approvazione ne genera),
+  // una vista di punteggio ferma a quando l'app e' partita direbbe il falso.
+  if (name === 'game') loadGame();
   closeSidebar();
 }
 
@@ -118,3 +123,4 @@ initChatView();
 initCatalogView();
 initUploadView();
 initQueueView();
+initGameView();

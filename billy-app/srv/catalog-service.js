@@ -11,21 +11,53 @@ function addMonthsISO(months) {
   return d.toISOString();
 }
 
-// Fase 5: risolve il contenuto testuale di una revisione da uno dei due
-// input supportati (testo incollato o file). Uno dei due è obbligatorio.
+// Fase 5: risolve il contenuto testuale di una revisione dai due input
+// supportati (testo incollato e/o file). Almeno uno dei due è obbligatorio.
+//
+// I due input si sommano invece di escludersi: il wizard di upload compone
+// in `content` le sezioni strutturate del tipo di asset (per una skill:
+// input richiesti, output, esempio di invocazione, procedura; per una
+// interfaccia: endpoint, autenticazione, payload, limiti), e prima di
+// questo fix allegare un file le buttava via silenziosamente.
+//
+// `content` va per primo perché è la parte curata a mano, e i due percorsi
+// che leggono questo testo la vogliono davanti: il chunking taglia in
+// sequenza (lib/chunking.js), quindi le sezioni finiscono nei primi chunk
+// invece che in coda a un PDF di 40 pagine; e runLoadSkill (lib/agent.js)
+// serve la skill intera ma troncata a 60k caratteri, dove a cadere deve
+// essere la fine del file allegato, non la procedura.
+//
+// Separatore: riga orizzontale + titolo Markdown. Serve a un umano nel
+// dettaglio asset, ed è comprensibile anche se un chunk comincia proprio
+// lì (dice di cosa sta leggendo un pezzo). Con un solo input il testo
+// resta identico a prima, nessun preambolo aggiunto.
 async function resolveContent({ content, fileContent, fileName, fileMimeType }) {
+  const pasted = (content || '').trim();
+
+  let fileBuffer = null;
+  let extracted = '';
   if (fileContent) {
-    const buffer = Buffer.from(fileContent, 'base64');
-    const text = await extractText(buffer, fileMimeType, fileName);
-    return { text, fileBuffer: buffer };
+    fileBuffer = Buffer.from(fileContent, 'base64');
+    extracted = ((await extractText(fileBuffer, fileMimeType, fileName)) || '').trim();
   }
-  if (content) {
-    return { text: content, fileBuffer: null };
+
+  if (!pasted && !fileBuffer) {
+    const err = new Error('Fornire almeno uno tra "content" (testo incollato) e "fileContent" (file, base64)');
+    err.code = 400;
+    err.status = 400;
+    throw err;
   }
-  const err = new Error('Fornire almeno uno tra "content" (testo incollato) e "fileContent" (file, base64)');
-  err.code = 400;
-  err.status = 400;
-  throw err;
+
+  if (pasted && extracted) {
+    const heading = fileName
+      ? `## Contenuto del file allegato (${fileName})`
+      : '## Contenuto del file allegato';
+    return { text: `${pasted}\n\n---\n\n${heading}\n\n${extracted}`, fileBuffer };
+  }
+
+  // Un file che non produce testo (estrazione vuota) non cancella comunque
+  // quanto scritto dall'utente: resta `pasted`, e il file è già allegato.
+  return { text: pasted || extracted, fileBuffer };
 }
 
 // Fase 5: allega il file originale all'Asset (storage "db" su HANA, scan
@@ -388,10 +420,16 @@ module.exports = class CatalogService extends cds.ApplicationService {
     const { query } = req.data;
     // Ricerca full-text istantanea, nessuna chiamata AI. "PUBLISHED" è
     // BOOLEAN nativo HANA (confermato dal DDL) — confronto diretto con TRUE.
+    // La LEFT JOIN su Player replica qui `uploadedByName` della proiezione
+    // Asset (catalog-service.cds): i risultati di ricerca finiscono nelle
+    // stesse card della lista, che senza questo campo perderebbero l'autore
+    // appena l'utente digita qualcosa nella barra di ricerca.
     const rows = await cds.run(
-      `SELECT "ID", "TITLE", "DESCRIPTION", "TYPE", "CERTIFICATIONLEVEL", "PUBLISHED"
-       FROM "BILLY_ASSET"
-       WHERE "PUBLISHED" = TRUE AND ("TITLE" LIKE ? OR "DESCRIPTION" LIKE ?)`,
+      `SELECT a."ID", a."TITLE", a."DESCRIPTION", a."TYPE", a."CERTIFICATIONLEVEL", a."PUBLISHED",
+              p."DISPLAYNAME" as "UPLOADEDBYNAME"
+       FROM "BILLY_ASSET" a
+       LEFT JOIN "BILLY_PLAYER" p ON p."ID" = a."UPLOADEDBY_ID"
+       WHERE a."PUBLISHED" = TRUE AND (a."TITLE" LIKE ? OR a."DESCRIPTION" LIKE ?)`,
       [`%${query}%`, `%${query}%`]
     );
     return rows.map((r) => ({
@@ -400,7 +438,8 @@ module.exports = class CatalogService extends cds.ApplicationService {
       description: r.DESCRIPTION,
       type: r.TYPE,
       certificationLevel: r.CERTIFICATIONLEVEL,
-      published: Boolean(r.PUBLISHED)
+      published: Boolean(r.PUBLISHED),
+      uploadedByName: r.UPLOADEDBYNAME || null
     }));
   };
 

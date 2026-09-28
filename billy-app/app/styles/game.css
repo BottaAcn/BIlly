@@ -1,0 +1,177 @@
+/* gamification — nuova vista. Stessa lingua visiva del mockup
+   (doc/FrontEnd/billy_final_nonfinal.html): token, .ccard, .cb-*.
+
+   Il mockup non ha una schermata di classifica, quindi qui non c'e' nulla
+   da trascrivere verbatim: ogni valore e' preso da una regola che il
+   mockup ha gia' e che fa lo stesso mestiere, indicata di volta in volta.
+   Niente scale nuove, niente colori nuovi — solo i token di tokens.css.
+   Le pill di filtro (.ftag) e gli scheletri (.skel) sono riusati da
+   catalog.css invece di essere ridefiniti qui. */
+
+/* Etichetta "dati dimostrativi": vive dentro .view-subtitle e ne eredita
+   dimensione e colore, quindi qui si spegne soltanto. Deve dire la verita'
+   a chi guarda da vicino, non gridare. */
+.game-demo{color:var(--t3);opacity:.7}
+
+/* Impaginazione: 12px e' il gap della .cgrid del catalogo, la stessa
+   distanza fra i blocchi tiene le due viste nello stesso ritmo. */
+.game-root{display:flex;flex-direction:column;gap:12px}
+.g-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;align-items:start}
+.g-col{display:flex;flex-direction:column;gap:12px}
+@media (max-width:900px){.g-cols{grid-template-columns:1fr}}
+
+/* ══ CARD ══
+   Stessa pelle della .ccard del catalogo (fondo, bordo, raggio, padding),
+   senza cursor/hover/transform: queste card non si aprono. */
+.g-card{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.g-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.g-card-title{font-size:13.5px;font-weight:500;color:var(--t1);line-height:1.3}
+.g-card-sub{font-size:11.5px;color:var(--t3);margin-top:2px}
+.g-sep{height:.5px;background:var(--bdr);margin:2px 0}
+.g-empty{font-size:13px;color:var(--t3);padding:12px 0}
+
+/* ══ BARRE ══
+   Geometria della .ccard-bar (3px, raggio 2, fondo --s3): e' la barra che
+   il mockup usa sotto il titolo delle card, qui misura avanzamenti. */
+.g-bar{height:3px;border-radius:2px;background:var(--s3);overflow:hidden}
+.g-bar-fill{height:100%;border-radius:2px;background:var(--v);transition:width .3s var(--ease)}
+.g-bar-thin{margin-top:5px}
+@media (prefers-reduced-motion: reduce){.g-bar-fill{transition:none}}
+
+/* ══ STAGIONE ══
+   L'unico blocco con un fondo viola pieno: e' l'intestazione della vista
+   e deve staccare. Il gradiente riprende i due viola gia' in uso
+   (--v4 e' rgba(120,87,255,.15), qui allargato di poco e degradante). */
+.g-season{background:linear-gradient(135deg,rgba(120,87,255,.18),rgba(120,87,255,.04));border:.5px solid var(--bdr3);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.g-season-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.g-season-name{font-size:15px;font-weight:600;color:var(--t1)}
+.g-season-dates{font-size:11.5px;color:var(--t3);margin-top:2px}
+.g-season-left{font-size:11.5px;color:var(--v2);white-space:nowrap}
+.g-season-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--t3)}
+.g-season-foot b{color:var(--t1);font-weight:600}
+
+/* ══ RIQUADRI NUMERICI ══
+   Tipografia dei contatori dell'intro (.ist-n 22/700, .ist-l 11/--t3):
+   stesso mestiere, stessa scala. */
+.g-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.g-stat{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:14px 16px}
+.g-stat-n{font-size:22px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.g-stat-l{font-size:11px;color:var(--t3);margin-top:2px}
+
+/* ══ CLASSIFICA ══ */
+.g-filters{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap}
+.g-rows{display:flex;flex-direction:column;gap:2px}
+/* Geometria della .qrow della coda, ma senza bordo e senza fondo proprio:
+   dieci righe con dieci bordi diventerebbero una grata. */
+.g-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;border:.5px solid transparent;transition:.12s}
+.g-row:hover{background:var(--s3)}
+/* La propria riga: stessa coppia fondo/bordo delle pill attive (.ftag.on),
+   cioe' il modo in cui questa app dice gia' "questo qui sei tu". */
+.g-row.me{background:var(--v4);border-color:var(--bdr3)}
+.g-rank{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:600;color:var(--t3);background:var(--s3);font-variant-numeric:tabular-nums}
+/* Podio: oro/argento/bronzo ricavati dai token esistenti (--yellow e la
+   scala del testo), non da tre colori nuovi. */
+.g-rank.r1{background:rgba(251,191,36,.15);color:var(--yellow);border:.5px solid rgba(251,191,36,.3)}
+.g-rank.r2{background:rgba(240,240,248,.09);color:var(--t2);border:.5px solid var(--bdr2)}
+.g-rank.r3{background:rgba(251,191,36,.07);color:rgba(251,191,36,.65);border:.5px solid rgba(251,191,36,.18)}
+/* Stesso cerchio dell'avatar in sidebar (.av-circle), 26px. */
+.g-av{width:26px;height:26px;border-radius:50%;background:var(--v4);border:.5px solid var(--bdr3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--v2);flex-shrink:0}
+.g-who{flex:1;min-width:0}
+.g-name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-dept{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* "tu": valori della .cert-badge + .cb-ret, il chip neutro gia' in uso. */
+.g-you{font-size:10px;font-weight:500;padding:1px 6px;border-radius:5px;background:var(--v4);color:var(--v2);border:.5px solid var(--bdr3);vertical-align:1px}
+.g-chips{display:flex;gap:4px;flex-shrink:0}
+/* Chip per reason: stessa forma della .cert-badge (10.5px, raggio 5,
+   padding 3/8) e stessa terna di colori dei badge di certificazione, cosi'
+   viola/verde/giallo significano la stessa cosa in tutta l'app. */
+.g-chip{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:500;padding:3px 7px;border-radius:5px;white-space:nowrap}
+.g-chip svg{width:11px;height:11px;flex-shrink:0}
+.g-chip.up{background:var(--v4);color:var(--v2);border:.5px solid var(--bdr3)}
+.g-chip.ce{background:rgba(74,222,128,.1);color:var(--green);border:.5px solid rgba(74,222,128,.25)}
+.g-chip.us{background:rgba(251,191,36,.1);color:var(--yellow);border:.5px solid rgba(251,191,36,.25)}
+.g-pts{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+.g-pts small{font-size:10.5px;font-weight:400;color:var(--t3)}
+/* Sotto i 520px i chip di scomposizione sono la prima cosa a cadere: nome
+   e punteggio sono l'informazione, il resto e' contorno. */
+@media (max-width:520px){.g-chips{display:none}}
+
+/* ══ LIVELLO ══
+   Anello in conic-gradient: nessuna libreria di grafici, nessun SVG da
+   calcolare. Il buco centrale e' un cerchio pieno del colore della card,
+   cosi' l'anello resta nitido a qualsiasi zoom. */
+.g-level{display:flex;align-items:center;gap:14px}
+.g-ring{width:92px;height:92px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--v) calc(var(--pct,0) * 1%),var(--s3) 0)}
+.g-ring-in{width:74px;height:74px;border-radius:50%;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.g-ring-n{font-size:18px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;line-height:1}
+.g-ring-l{font-size:10px;color:var(--t3)}
+.g-level-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.g-level-name{font-size:15px;font-weight:600;color:var(--t1)}
+.g-level-next{font-size:11.5px;color:var(--t3)}
+.g-level-next b{color:var(--v2);font-weight:500}
+/* Scala dei livelli: minuscola, serve a dire "dove sono nel percorso",
+   non a essere letta parola per parola. */
+.g-level-scale{display:flex;justify-content:space-between;gap:4px;font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.3px}
+.g-level-scale span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-level-scale span.on{color:var(--t3)}
+@media (max-width:420px){.g-level-scale{display:none}}
+
+/* ══ OBIETTIVI ══ */
+.g-badges{display:flex;flex-direction:column;gap:8px}
+.g-badge{display:flex;align-items:center;gap:9px}
+/* Stesso quadrato arrotondato della .qico della coda, un filo piu' piccolo. */
+.g-badge-ico{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--s3);border:.5px solid var(--bdr);color:var(--t3);transition:.12s}
+/* Raggiunto: la stessa coppia fondo/bordo/colore delle pill attive. Il
+   traguardo ancora chiuso resta grigio — si vede che c'e', non si accende. */
+.g-badge.on .g-badge-ico{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+.g-badge-txt{flex:1;min-width:0}
+.g-badge-n{font-size:12.5px;color:var(--t3)}
+.g-badge.on .g-badge-n{color:var(--t1)}
+.g-badge-d{font-size:11px;color:var(--t3);opacity:.8}
+.g-badge-s{font-size:11px;color:var(--t3);white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0}
+.g-badge.on .g-badge-s{color:var(--green)}
+
+/* ══ TRAGUARDI DI PRACTICE ══ */
+.g-goals{display:flex;flex-direction:column;gap:12px}
+.g-goal{display:flex;flex-direction:column;gap:6px}
+.g-goal-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--t2)}
+.g-goal-n{font-size:13px;font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums}
+.g-goal-t{font-weight:400;color:var(--t3)}
+.g-goal-x{font-size:11px;color:var(--t3)}
+
+/* ══ REGOLE DI PUNTEGGIO ══ */
+.g-rules{display:flex;flex-direction:column;gap:10px}
+.g-rule{display:flex;align-items:flex-start;gap:9px}
+.g-rule-ico{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:.5px solid var(--bdr)}
+.g-rule-txt{flex:1;min-width:0}
+.g-rule-n{font-size:12.5px;font-weight:500;color:var(--t1)}
+.g-rule-d{font-size:11px;color:var(--t3);line-height:1.5;margin-top:1px}
+.g-rule-p{font-size:12.5px;font-weight:600;color:var(--t1);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Le tre icone (regole e attivita') riprendono la terna di colori dei
+   chip: stesso significato, stesso colore, ovunque. */
+.g-rule-ico.up,.g-act-ico.up{background:var(--v4);color:var(--v2);border-color:var(--bdr3)}
+.g-rule-ico.ce,.g-act-ico.ce{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.25)}
+.g-rule-ico.us,.g-act-ico.us{background:rgba(251,191,36,.1);color:var(--yellow);border-color:rgba(251,191,36,.25)}
+
+/* ══ ATTIVITA' RECENTE ══
+   Le righe collegate a un asset reale sono <button>: si aprono nel
+   dettaglio del catalogo, quindi devono essere raggiungibili da tastiera.
+   Il reset serve solo a far somigliare il bottone alle righe non
+   cliccabili, che sono <div>. */
+.g-acts{display:flex;flex-direction:column;gap:2px}
+.g-act{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border-radius:10px;border:.5px solid transparent;width:100%;text-align:left;background:none;font-family:inherit;transition:.12s}
+.g-act.link{cursor:pointer}
+/* main.css sposta ogni <button> di 1px al click: su una pill e' una
+   pressione, su una riga larga quanto la card e' un sobbalzo. */
+.g-act:active{transform:none}
+.g-act.link:hover{background:var(--s3);border-color:var(--bdr2)}
+.g-act.link:focus-visible{outline:2px solid var(--bdr3);outline-offset:-2px}
+.g-act-ico{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:.5px solid var(--bdr)}
+.g-act-txt{flex:1;min-width:0}
+.g-act-t{font-size:12.5px;color:var(--t2);line-height:1.4}
+/* Il titolo dell'asset dentro la frase: evidenziato senza corsivo, che a
+   12px su fondo scuro si legge male. */
+.g-act-t em{font-style:normal;color:var(--t1)}
+.g-act-m{font-size:11px;color:var(--t3);margin-top:2px}
+.g-act-p{font-size:11.5px;font-weight:600;color:var(--v2);white-space:nowrap;font-variant-numeric:tabular-nums;margin-left:auto}

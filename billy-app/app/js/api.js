@@ -17,13 +17,28 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
+// Quattro moduli indipendenti chiedono la lista asset (contatori dell'intro,
+// pill suggerite in chat, catalogo, classifica): all'avvio partirebbero GET
+// identiche in parallelo. Qui si condivide la promise finche' e' in volo, e
+// basta: nessuna cache con scadenza, cosi' "Aggiorna" del catalogo e i
+// ricaricamenti dopo un upload continuano a vedere dati freschi come prima.
+const inFlight = new Map();
+
+function dedupe(key, run) {
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const p = run().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
 export const api = {
   // `history` sono i turni precedenti [{role:'user'|'assistant', content}]:
   // senza, Billy risponde come se ogni domanda fosse la prima.
   askBilly: (question, history = []) =>
     request('/rest/billy/askBilly', { method: 'POST', body: { question, history } }),
 
-  listAssets: () => request('/rest/catalog/Asset'),
+  listAssets: () => dedupe('listAssets', () => request('/rest/catalog/Asset')),
   getAsset: (assetId) => request(`/rest/catalog/Asset/${assetId}`),
   getAttachments: (assetId) => request(`/rest/catalog/Asset/${assetId}/attachments`).catch(() => []),
   searchAssets: (query) => request(`/rest/catalog/searchAssets?query=${encodeURIComponent(query)}`),

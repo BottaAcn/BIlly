@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="styles/chat.css">
 <link rel="stylesheet" href="styles/catalog.css">
 <link rel="stylesheet" href="styles/upload.css">
+<link rel="stylesheet" href="styles/game.css">
 </head>
 <body>
 
@@ -83,6 +84,11 @@
         <span class="ni-label">Revisione</span>
         <span id="queue-count" class="ni-badge" style="display:none"></span>
       </button>
+      <button class="ni nav-item" data-view="game" type="button">
+        <span class="ni-bar"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+        <span class="ni-label">Classifica</span>
+      </button>
     </nav>
 
     <div class="side-foot">
@@ -120,7 +126,12 @@
             <!-- Le pill mostrano un'etichetta corta ma precompilano la
                  domanda vera (data-question): il testo visibile e' quello
                  che sta in una pill, quello inviato e' quello che serve
-                 a Billy per rispondere. -->
+                 a Billy per rispondere.
+                 Quelle qui sotto sono il FALLBACK: chat-view.js le
+                 sostituisce con suggerimenti costruiti sugli asset veri
+                 del catalogo. Restano se il catalogo e' vuoto o non
+                 risponde, e si vedono subito mentre la lista arriva.
+                 Non sono un placeholder: non vanno svuotate. -->
             <div id="suggested-questions" class="pills-scroll">
               <button class="pill suggested-chip" type="button" data-question="Come funziona la procedura di onboarding?" title="Come funziona la procedura di onboarding?">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Onboarding
@@ -169,19 +180,31 @@
             </label>
             <button class="ftag" id="catalog-refresh" type="button">Aggiorna</button>
           </div>
+          <!-- Due righe di pill con lo stesso aspetto: senza etichetta non
+               si capirebbe che filtrano su assi diversi (e che si sommano). -->
           <div class="cat-filters" id="catalog-filters">
-            <button class="ftag on" data-filter-cert="all" type="button">Tutti</button>
-            <button class="ftag" data-filter-cert="certified" type="button">✓ Certificato</button>
-            <button class="ftag" data-filter-cert="certifiedOutdated" type="button">✗ Scaduto</button>
-            <button class="ftag" data-filter-cert="community" type="button">◆ Community</button>
-            <button class="ftag" data-filter-cert="deprecated" type="button">○ Ritirato</button>
+            <span class="flt-lbl">Stato:</span>
+            <button class="ftag on" data-filter-cert="all" type="button" aria-pressed="true">Tutti</button>
+            <button class="ftag" data-filter-cert="certified" type="button" aria-pressed="false">✓ Certificato</button>
+            <button class="ftag" data-filter-cert="certifiedOutdated" type="button" aria-pressed="false">✗ Scaduto</button>
+            <button class="ftag" data-filter-cert="community" type="button" aria-pressed="false">◆ Community</button>
+            <button class="ftag" data-filter-cert="deprecated" type="button" aria-pressed="false">○ Ritirato</button>
           </div>
+          <!-- Le pill di tipo le genera catalog-view.js: i tipi sono 6 ma in
+               catalogo ne esistono davvero due o tre, e quattro pill sempre
+               vuote sarebbero solo rumore. -->
+          <div class="cat-filters" id="catalog-types" hidden></div>
         </div>
         <div class="sort-row" id="catalog-sort">
           <span>Ordina:</span>
           <button class="srt on" data-sort="recent" type="button">Più recenti</button>
           <button class="srt" data-sort="alpha" type="button">A → Z</button>
           <button class="srt" data-sort="cert" type="button">Certificati</button>
+          <!-- Interruttore del raggruppamento: acceso di default, ma chi sta
+               leggendo una classifica (rilevanza della ricerca approfondita)
+               deve poter tornare a una lista unica con un clic. -->
+          <span>Vista:</span>
+          <button class="srt on" id="catalog-group" type="button" aria-pressed="true">Raggruppa per tipo</button>
         </div>
         <p id="catalog-count" class="catalog-count"></p>
         <div id="catalog-grid" class="cgrid"></div>
@@ -210,6 +233,23 @@
       </div>
       <div class="view-body">
         <div id="queue-list" class="qlist"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ GAME -->
+    <section id="view-game" class="view">
+      <div class="view-header">
+        <h1 class="view-title">Classifica</h1>
+        <!-- L'etichetta "dati dimostrativi" la scrive game-view.js: e'
+             legata alla costante SHOW_DEMO_BADGE di quel file, che sparira'
+             insieme al mock. -->
+        <p class="view-subtitle">Punti, stagione e progressione della practice.<span id="game-demo" class="game-demo"></span></p>
+      </div>
+      <div class="view-body">
+        <!-- Tutto il contenuto e' generato da js/views/game-view.js: le
+             sezioni dipendono dai dati (chi certifica vede un obiettivo in
+             piu', i traguardi esistono solo se il catalogo risponde). -->
+        <div id="game-root" class="game-root"></div>
       </div>
     </section>
 

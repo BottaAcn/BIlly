@@ -13,6 +13,20 @@ export const TYPE_LABELS = {
   application: 'Applicazione', interface: 'Interfaccia', other: 'Altro'
 };
 
+// Ordine canonico dei tipi: serve a dare alle pill di filtro un ordine
+// stabile, che non dipenda da quale asset è stato caricato per primo (con
+// l'ordine di apparizione nei dati le pill si sposterebbero sotto il dito
+// a ogni upload). 'other' resta in fondo perché è il contenitore del resto.
+export const TYPE_ORDER = ['document', 'skill', 'tool', 'application', 'interface', 'other'];
+
+// Il `type` arriva dal backend come stringa libera: un valore assente o non
+// previsto (dato vecchio, typo in un import) diventa 'other' invece di
+// generare una categoria fantasma con un'etichetta tecnica.
+export function typeOf(asset) {
+  const t = asset?.type;
+  return TYPE_ORDER.includes(t) ? t : 'other';
+}
+
 // Nessuna libreria di icone: glifi Unicode semplici, coerenti con la scelta
 // di non aggiungere dipendenze esterne per il frontend.
 export const TYPE_ICONS = {

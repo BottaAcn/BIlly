@@ -16,6 +16,25 @@
 .cat-filters{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap}
 .ftag{padding:5px 13px;border-radius:20px;font-size:12px;background:var(--s2);border:.5px solid var(--bdr);color:var(--t3);cursor:pointer;transition:.12s;white-space:nowrap}
 .ftag.on{background:var(--v4);border-color:var(--bdr3);color:var(--v2)}
+/* Etichetta delle due righe di pill ("Stato:", "Tipo:"): due righe con lo
+   stesso aspetto senza etichetta non direbbero che filtrano su assi diversi.
+   Stessi valori di .sort-row span, che nel mockup fa gia' questo mestiere;
+   align-self invece di align-items per non toccare la regola .cat-filters
+   trascritta dal mockup. */
+.flt-lbl{font-size:11.5px;color:var(--t3);align-self:center}
+/* La riga dei tipi si nasconde con [hidden] quando non c'e' niente da
+   filtrare: senza questa regola il display:flex di .cat-filters batterebbe
+   l'[hidden] di default del browser (stesso motivo di #intro[hidden]). */
+.cat-filters[hidden]{display:none}
+/* Conteggio dentro la pill di tipo: nessun colore proprio, eredita quello
+   della pill (spenta o accesa) e si smorza soltanto, cosi' il numero non
+   compete con l'etichetta. Cifre tabellari: i conteggi cambiano a ogni
+   ricerca e senza non allineerebbero, facendo "saltare" le pill. */
+.ftag-n{margin-left:4px;opacity:.65;font-variant-numeric:tabular-nums}
+/* Tipo presente in catalogo ma azzerato dagli altri filtri: resta visibile
+   (e' un'informazione) ma non cliccabile, porterebbe a una griglia vuota. */
+.ftag:disabled{opacity:.4;cursor:default}
+
 .sort-row{display:flex;flex-direction:row;gap:6px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
 .sort-row span{font-size:11.5px;color:var(--t3)}
 .srt{padding:5px 12px;border-radius:20px;font-size:11.5px;background:var(--s2);border:.5px solid var(--bdr);color:var(--t3);cursor:pointer;transition:.12s;white-space:nowrap}
@@ -36,6 +55,16 @@ button.ftag:focus-visible,button.srt:focus-visible{outline:2px solid var(--bdr3)
 
 /* ══ GRIGLIA E CARD ══ (mockup 154-183) */
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+/* Sezioni per tipo. Il mockup ha una griglia piatta: funziona con sei card
+   finte, non con trenta asset reali dove ventidue sono skill. L'intestazione
+   riusa i valori della .modal-section-lbl (11px/600/maiuscolo/1px), che in
+   questo file e' gia' l'etichetta di sezione; il conteggio riusa esattamente
+   i valori di .cert-badge + .cb-ret, cioe' il chip neutro che il file ha
+   gia'. Nessuna scala nuova: 16px fra le sezioni e' la stessa spaziatura di
+   .cat-toolbar e .qgroup, 10px lo stesso gap della toolbar. */
+.cgroups{display:flex;flex-direction:column;gap:16px}
+.cgroup-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3)}
+.cgroup-count{font-size:10.5px;font-weight:500;padding:3px 8px;border-radius:5px;letter-spacing:0;background:rgba(240,240,248,.06);color:var(--t3);border:.5px solid var(--bdr);font-variant-numeric:tabular-nums}
 .ccard{background:var(--s2);border:.5px solid var(--bdr);border-radius:12px;padding:16px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px}
 .ccard:hover{border-color:var(--bdr3);background:var(--s3);transform:translateY(-2px)}
 .ccard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}

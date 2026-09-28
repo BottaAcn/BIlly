@@ -1,7 +1,8 @@
 import './billy-badge.js';
 import {
   escapeHtml, fmtDate, fmtSimilarity, TYPE_LABELS, TYPE_ICO_CLASS,
-  typeIconSvg, certUi, computeCompleteness, completenessHint, authorOf, initialsOf
+  typeIconSvg, certUi, computeCompleteness, completenessHint, authorOf, initialsOf,
+  typeOf
 } from '../utils.js';
 
 // <billy-asset-card> — card nella griglia del catalogo (.ccard del mockup).
@@ -50,7 +51,10 @@ class BillyAssetCard extends HTMLElement {
     if (!this.isConnected || !this._asset) return;
     const a = this._asset;
     const cert = certUi(a.certificationLevel);
-    const type = a.type || 'other';
+    // Stessa normalizzazione usata dal raggruppamento del catalogo: se la
+    // card mostrasse "Altro" e la griglia raggruppasse sotto un tipo ignoto
+    // (o viceversa) l'intestazione di sezione contraddirebbe le sue card.
+    const type = typeOf(a);
     // Gli allegati non sono nella lista (servirebbe una chiamata per card):
     // la completezza qui è calcolata sui soli campi che il servizio manda.
     const completeness = computeCompleteness(a);

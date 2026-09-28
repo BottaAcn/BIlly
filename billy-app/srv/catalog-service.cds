@@ -10,7 +10,21 @@ service CatalogService @(path: 'catalog', protocol: 'rest') {
   // catalogo gonfierebbe la risposta di GET /rest/catalog/Asset senza che
   // nessuna vista lo usi. Chi ha bisogno del testo usa getRevisionDetail
   // (revisione) o, lato agente, il tool loadSkill.
-  entity Asset as select from db.Asset { * } excluding { content } where published = true;
+  // `uploadedByName`: senza di lui il client riceve solo `uploadedBy_ID`
+  // (un UUID, che non si mostra a un utente) e il catalogo non può dire di
+  // chi è un asset. Risolto come path expression nella proiezione, non in
+  // un handler `after` (una SELECT su Player per ogni asset letto, e la
+  // lista catalogo è il percorso di lettura più caldo dell'app) e non come
+  // expand dell'associazione (il client dovrebbe chiederlo esplicitamente
+  // con $expand, e GET /rest/catalog/Asset non lo fa): il compilatore lo
+  // traduce in una LEFT JOIN dentro la vista, quindi è una join sola
+  // risolta dal DB, a costo zero sul lato Node. Resta null finché XSUAA non
+  // è attiva e tutti gli upload passano dal player anonimo: campo assente,
+  // non stringa fasulla — il client sa già omettere l'autore in quel caso.
+  entity Asset as select from db.Asset {
+    *,
+    uploadedBy.displayName as uploadedByName
+  } excluding { content } where published = true;
 
   action uploadAsset(
     title        : String,
