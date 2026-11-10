@@ -1,0 +1,15 @@
+{
+  "name": "billy-sharepoint-import",
+  "version": "1.0.0",
+  "description": "Import Billy assets from BTP export to SharePoint",
+  "scripts": {
+    "import-skills": "node import-skills.js",
+    "import-docs": "node import-documents.js",
+    "provision": "node provision-sharepoint.js"
+  },
+  "dependencies": {
+    "@microsoft/microsoft-graph-client": "^3.0.2",
+    "@azure/identity": "^4.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
